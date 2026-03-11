@@ -1,0 +1,15 @@
+{
+  "name": "orchestrator-service",
+  "version": "0.1.0",
+  "description": "Week 1 base for Process B: multimodal orchestration and scoring",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "node --watch src/app.js",
+    "start": "node src/app.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
