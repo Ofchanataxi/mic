@@ -6,9 +6,9 @@ Base de microservicios para simulación multimodal de entrevistas.
 
 `services/orchestrator-service` incluye:
 
-- Base de semana 1 (scoring + reporte + endpoint principal).
-- Integración básica de semana 2 con servicios externos (audio/video/content/code).
-- Modo mock configurable (`USE_MOCKS=true`) para desarrollo local.
+- Semana 1: scoring multimodal + reporte.
+- Semana 2: integración básica con servicios externos (audio/video/content/code).
+- Semana 3: orquestación interna por evento y publicación a feedback-service.
 
 ## Probar módulo orquestador
 
@@ -18,6 +18,10 @@ npm test
 npm start
 ```
 
+Endpoints principales:
+
+- `POST /orchestrator/evaluate-interview`
+- `POST /orchestrator/events/interview-finished`
 Endpoint principal:
 
 - `POST /orchestrator/evaluate-interview`
