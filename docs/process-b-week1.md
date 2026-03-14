@@ -1,4 +1,5 @@
 # Proceso B — Semana 1, 2 y 3 (Persona 2)
+# Proceso B — Semana 1 y Semana 2 (Persona 2)
 
 Este documento resume lo implementado para la parte de **Ejecución, Evaluación y Feedback**.
 
@@ -24,6 +25,13 @@ Este documento resume lo implementado para la parte de **Ejecución, Evaluación
   - idempotencia por `eventId`,
   - respuesta `202` para procesamiento asíncrono.
 - Estado de publicación de feedback (`published`, `failed`, `skipped`) expuesto en respuesta.
+Se completó una integración inicial con servicios externos (sin cola aún):
+
+1. **Recolección multimodal real** desde servicios de audio, video, contenido y código.
+2. **Ejecución en paralelo con tolerancia a fallas parciales** (`Promise.allSettled`).
+3. **Request extendido** con `segments` para soportar transcripción/evaluación por pregunta.
+4. **Warnings por servicio** para trazabilidad operativa.
+5. **Validación básica de contrato de entrada** (`interviewId`, `segments[]`, `questionId`).
 
 ## Contrato actual
 
@@ -44,6 +52,10 @@ Body:
 ```json
 {
   "eventId": "evt-123",
+Request:
+
+```json
+{
   "interviewId": "uuid",
   "videoUrl": "s3://bucket/interview.mp4",
   "segments": [
@@ -57,6 +69,20 @@ Body:
       "language": "javascript"
     }
   ]
+}
+```
+
+Response (extracto):
+
+```json
+{
+  "interviewId": "uuid",
+  "globalScore": 0.71,
+  "questionResults": [],
+  "warnings": [
+    "video_analysis_failed: ..."
+  ],
+  "report": {}
 }
 ```
 
@@ -77,3 +103,9 @@ Body:
 - Sustituir disparo HTTP de evento por consumo real de cola (RabbitMQ/SQS/Kafka).
 - Persistir estado de eventos procesados para idempotencia durable.
 - Añadir pruebas de contrato HTTP entre servicios y pruebas end-to-end de flujo asíncrono.
+
+## Próximo paso (Semana 3)
+
+- Consumir evento `INTERVIEW_FINISHED` por cola y disparar evaluación asíncrona.
+- Persistir resultado en Feedback Service con contrato interno.
+- Añadir pruebas de contrato HTTP entre servicios.

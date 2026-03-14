@@ -1,11 +1,11 @@
 import express from 'express';
-import { servicesConfig } from './config/services.js';
-import { orchestrateInterview } from './application/orchestrateInterview.js';
+import { collectAnalysis } from './application/collectAnalysis.js';
+import { mergeByQuestion } from './domain/mergeAnalyses.js';
+import { scoreInterview } from './domain/scoreInterview.js';
+import { buildFeedbackReport } from './domain/buildFeedbackReport.js';
 
 const app = express();
 app.use(express.json());
-
-const processedEvents = new Set();
 
 function validateRequest(body) {
   if (!body.interviewId) return 'interviewId is required';
@@ -19,18 +19,8 @@ function validateRequest(body) {
   return null;
 }
 
-function isValidEventToken(req) {
-  const token = req.header('x-orchestrator-token');
-  return token && token === servicesConfig.eventToken;
-}
-
 app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'orchestrator-service',
-    week: 3,
-    publishFeedback: servicesConfig.publishFeedback,
-  });
+  res.json({ status: 'ok', service: 'orchestrator-service' });
 });
 
 app.post('/orchestrator/evaluate-interview', async (req, res) => {
@@ -39,34 +29,25 @@ app.post('/orchestrator/evaluate-interview', async (req, res) => {
     return res.status(400).json({ error: validationError });
   }
 
-  const result = await orchestrateInterview(req.body);
-  return res.json(result);
-});
+  const { interviewId, videoUrl = null, segments = [] } = req.body;
 
-app.post('/orchestrator/events/interview-finished', async (req, res) => {
-  if (!isValidEventToken(req)) {
-    return res.status(401).json({ error: 'invalid orchestration token' });
-  }
+  const rawAnalysis = await collectAnalysis({ interviewId, videoUrl, segments });
+  const merged = mergeByQuestion(rawAnalysis);
+  const scoring = scoreInterview(merged);
+  const report = buildFeedbackReport({
+    interviewId,
+    questionResults: scoring.questionResults,
+    globalScore: scoring.globalScore,
+  });
 
-  const validationError = validateRequest(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  const eventId = req.body.eventId ?? `interview-${req.body.interviewId}`;
-  if (processedEvents.has(eventId)) {
-    return res.status(200).json({ status: 'already_processed', eventId });
-  }
-
-  const result = await orchestrateInterview(req.body);
-  processedEvents.add(eventId);
-
-  return res.status(202).json({
-    status: result.warnings.length ? 'processed_with_warnings' : 'processed',
-    eventId,
-    interviewId: req.body.interviewId,
-    warnings: result.warnings,
-    feedbackPublication: result.feedbackPublication,
+  return res.json({
+    interviewId,
+    globalScore: scoring.globalScore,
+    questionResults: scoring.questionResults,
+    strengths: report.summary.strengths,
+    improvementAreas: report.summary.improvementAreas,
+    warnings: rawAnalysis.warnings,
+    report,
   });
 });
 

@@ -22,3 +22,6 @@ Endpoints principales:
 
 - `POST /orchestrator/evaluate-interview`
 - `POST /orchestrator/events/interview-finished`
+Endpoint principal:
+
+- `POST /orchestrator/evaluate-interview`
