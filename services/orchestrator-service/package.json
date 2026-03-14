@@ -8,7 +8,7 @@
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
     "test": "node --test",
-    "db:init": "bash scripts/create_db.sh"
+    "db:init": "node scripts/init_db.js"
   },
   "dependencies": {
     "express": "^4.19.2",

@@ -16,6 +16,6 @@ export const dbConfig = {
   port: Number(process.env.POSTGRES_PORT ?? 5432),
   user: process.env.POSTGRES_USER ?? 'postgres',
   password: process.env.POSTGRES_PASSWORD ?? '1234',
-  database: process.env.POSTGRES_DB ?? 'mic_orchestrator',
+  database: process.env.POSTGRES_DB ?? 'mic_platform',
   max: Number(process.env.POSTGRES_POOL_MAX ?? 10),
 };

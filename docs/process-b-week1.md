@@ -17,13 +17,13 @@ Este documento resume lo implementado para **Ejecución, Evaluación y Feedback*
 - Publicación del reporte a feedback-service.
 
 ## Semana 4
-- Idempotencia de eventos llevada a capa de persistencia (ya no solo en memoria del proceso).
-- Endpoint de consulta de reporte persistido por entrevista.
+- Idempotencia de eventos en persistencia durable (`orchestrator_processed_events`).
+- Endpoint de consulta de resumen persistido por entrevista.
 
 ## Semana 5
-- Persistencia de evaluaciones completas y metadatos de publicación de feedback en PostgreSQL.
-- Modo degradado automático a memoria si PostgreSQL no está disponible (resiliencia local).
-- Script de inicialización de base de datos + esquema para entorno local.
+- Integración con **BD única del proyecto** (`mic_platform`) usando el esquema relacional compartido.
+- Persistencia en `interview_summaries` con adaptación desde resultados multimodales.
+- Script de inicialización **cross-platform** (`npm run db:init`) con Node.js.
 
 ## Endpoints principales
 
@@ -47,13 +47,13 @@ Este documento resume lo implementado para **Ejecución, Evaluación y Feedback*
 - `CODE_SERVICE_URL=http://code-evaluation-service:3011`
 - `FEEDBACK_SERVICE_URL=http://feedback-service:3012`
 
-### PostgreSQL local
+### PostgreSQL (base única)
 - `ENABLE_DB=true|false`
 - `POSTGRES_HOST=localhost`
 - `POSTGRES_PORT=5432`
 - `POSTGRES_USER=postgres`
 - `POSTGRES_PASSWORD=1234`
-- `POSTGRES_DB=mic_orchestrator`
+- `POSTGRES_DB=mic_platform`
 
 ## Inicialización de BD local
 
@@ -62,4 +62,4 @@ cd services/orchestrator-service
 npm run db:init
 ```
 
-El script crea la base `mic_orchestrator` (si no existe) y aplica `src/db/schema.sql`.
+`db:init` crea la base si no existe y aplica `src/db/schema.sql` (modelo compartido del proyecto + tabla de eventos del orquestador).
