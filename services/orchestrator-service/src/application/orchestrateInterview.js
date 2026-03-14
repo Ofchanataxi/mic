@@ -46,3 +46,9 @@ export async function orchestrateInterview({ interviewId, videoUrl = null, segme
     report,
   };
 }
+
+export async function orchestrateAndPersist({ payload, persistence }) {
+  const result = await orchestrateInterview(payload);
+  await persistence.saveInterviewEvaluation(result);
+  return result;
+}
