@@ -10,17 +10,28 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'audio-analysis-service' });
 });
 
-app.post('/audio/analyze', (req, res) => {
+app.post('/audio/analyze', async (req, res) => {
   const validationError = validateAnalyzeRequest(req.body, serviceConfig.maxSegmentDurationSeconds);
   if (validationError) {
     return res.status(400).json({ error: validationError });
   }
 
-  const results = req.body.segments.map((segment) => analyzeSegment(segment));
+  const { interviewId, videoUrl, segments } = req.body;
+
+  const results = await Promise.all(
+    segments.map((segment) =>
+      analyzeSegment({
+        videoUrl,
+        segment,
+        noiseDb: serviceConfig.silenceNoiseDb,
+        silenceMinSeconds: serviceConfig.silenceMinSeconds,
+      }),
+    ),
+  );
 
   return res.json({
-    interviewId: req.body.interviewId,
-    videoUrl: req.body.videoUrl,
+    interviewId,
+    videoUrl,
     results,
   });
 });
