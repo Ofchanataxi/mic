@@ -25,12 +25,25 @@ Base de microservicios para simulación multimodal de entrevistas.
 - Métricas basadas en evidencia visual real: `postureScore`, `nervousMovementScore`, `attentionScore`.
 - `eyeContactScore` se devuelve como `null` hasta integrar modelo facial específico (MediaPipe/Face API).
 
+### `services/content-evaluation-service`
+
+- Evaluación semántica simulada por heurísticas sobre `questionText` + `transcript`.
+- Endpoint `POST /content/evaluate` compatible con el orquestador.
+- Devuelve `technicalScore`, `clarityScore`, `depthScore`, `justification` y metadatos del análisis.
+- Preparado para reemplazar la heurística por OpenAI/Groq/Gemini más adelante sin cambiar el contrato REST.
+
 ### `services/code-evaluation-service`
 
 - Evaluación simulada por heurísticas para avanzar mientras se integra Judge0.
 - Endpoint `POST /code/evaluate` compatible con el orquestador.
 - Score estructurado con `passedTests`, `totalTests`, `compileError`, `executionTime`, `memoryUsage` y metadatos de análisis.
 - Soporte inicial para `javascript`, `typescript`, `python`, `java` y `cpp`.
+
+### `services/feedback-service`
+
+- Recibe el reporte final del orquestador por `POST /feedback/internal`.
+- Publica el feedback guardándolo como JSON en disco y expone `GET /feedback/:interviewId`.
+- Simula notificación al candidato para completar el cierre del flujo mientras luego se integra correo real o PDF.
 
 ## Base de datos única del proyecto
 
