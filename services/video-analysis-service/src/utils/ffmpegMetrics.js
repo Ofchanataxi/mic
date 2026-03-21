@@ -73,9 +73,8 @@ export async function runSignalStats({ inputPath, start, duration, fps }) {
     '-',
   ];
 
-  const { stdout, stderr } = await execFileAsync('ffmpeg', args, { windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
-  const output = stdout + '\n' + stderr;
-  return parseSignalStats(output);
+  const { stderr } = await execFileAsync('ffmpeg', args, { windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
+  return parseSignalStats(stderr);
 }
 
 export async function runCropDetect({ inputPath, start, duration, fps }) {
@@ -95,10 +94,8 @@ export async function runCropDetect({ inputPath, start, duration, fps }) {
     '-',
   ];
 
-  const { stdout, stderr } = await execFileAsync('ffmpeg', args, { windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
-  
-  const output = stdout + '\n' + stderr;
-  return parseCropBoxes(output);
+  const { stderr } = await execFileAsync('ffmpeg', args, { windowsHide: true, maxBuffer: 20 * 1024 * 1024 });
+  return parseCropBoxes(stderr);
 }
 
 export function buildVideoScores({ signal, crop }) {

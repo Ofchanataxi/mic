@@ -25,6 +25,13 @@ Base de microservicios para simulación multimodal de entrevistas.
 - Métricas basadas en evidencia visual real: `postureScore`, `nervousMovementScore`, `attentionScore`.
 - `eyeContactScore` se devuelve como `null` hasta integrar modelo facial específico (MediaPipe/Face API).
 
+### `services/code-evaluation-service`
+
+- Evaluación simulada por heurísticas para avanzar mientras se integra Judge0.
+- Endpoint `POST /code/evaluate` compatible con el orquestador.
+- Score estructurado con `passedTests`, `totalTests`, `compileError`, `executionTime`, `memoryUsage` y metadatos de análisis.
+- Soporte inicial para `javascript`, `typescript`, `python`, `java` y `cpp`.
+
 ## Base de datos única del proyecto
 
 El servicio usa la **misma base de datos compartida** del proyecto:
