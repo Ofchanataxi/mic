@@ -2,6 +2,32 @@
 
 Base de microservicios para simulación multimodal de entrevistas.
 
+## Estado actual del Proceso A (Persona 1)
+
+### `services/profile-service`
+
+- Procesa texto de CV de forma simple.
+- Detecta dominios y tecnologías por heurísticas.
+- Construye un `candidate profile` persistido en memoria.
+
+### `services/question-bank-service`
+
+- Expone catálogo base de preguntas técnicas, soft skills y coding.
+- Permite filtrar por dominio, tipo y nivel.
+- Expone detalle de ejercicios de código.
+
+### `services/adaptability-service`
+
+- Genera un plan simple de priorización por dominios.
+- Usa plantillas de rol + historial simulado para reforzar debilidades.
+- Mantiene la restricción de no adaptar en tiempo real.
+
+### `services/interview-service`
+
+- Genera el guion de entrevista a partir de candidato, perfil, rol objetivo y plan de adaptabilidad.
+- Devuelve bloques, preguntas ordenadas y `orchestrationContract` listo para el Proceso B.
+- Mantiene una estructura simple: warmup, deep-dive y coding.
+
 ## Estado actual del Proceso B (Persona 2)
 
 ### `services/orchestrator-service`

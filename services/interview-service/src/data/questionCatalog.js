@@ -1,0 +1,77 @@
+export const questionCatalog = [
+  {
+    id: 'q-tech-node-1',
+    type: 'TECHNICAL',
+    domain: 'backend',
+    subdomain: 'api-design',
+    level: 'MID',
+    text: 'Explica cómo diseñarías una API REST para gestionar órdenes de compra.',
+  },
+  {
+    id: 'q-tech-db-1',
+    type: 'TECHNICAL',
+    domain: 'databases',
+    subdomain: 'transactions',
+    level: 'MID',
+    text: '¿Qué problema resuelven las transacciones y cuándo usarías rollback?',
+  },
+  {
+    id: 'q-tech-react-1',
+    type: 'TECHNICAL',
+    domain: 'frontend',
+    subdomain: 'state-management',
+    level: 'MID',
+    text: '¿Cuándo elegirías estado global y cuándo estado local en una app React?',
+  },
+  {
+    id: 'q-soft-team-1',
+    type: 'SOFT',
+    domain: 'soft-skills',
+    subdomain: 'teamwork',
+    level: 'MID',
+    text: 'Cuéntame sobre una situación donde tuviste que resolver un conflicto dentro del equipo.',
+  },
+  {
+    id: 'q-soft-comm-1',
+    type: 'SOFT',
+    domain: 'soft-skills',
+    subdomain: 'communication',
+    level: 'MID',
+    text: '¿Cómo explicarías una decisión técnica compleja a una persona no técnica?',
+  },
+  {
+    id: 'q-code-js-1',
+    type: 'CODING',
+    domain: 'backend',
+    subdomain: 'algorithms',
+    level: 'MID',
+    text: 'Implementa una función que agrupe palabras anagrama.',
+    metadata: { language: 'javascript', expectedResponseType: 'code' },
+  },
+  {
+    id: 'q-code-sql-1',
+    type: 'CODING',
+    domain: 'databases',
+    subdomain: 'queries',
+    level: 'MID',
+    text: 'Escribe una consulta SQL para obtener los 5 clientes con más compras del último mes.',
+    metadata: { language: 'sql', expectedResponseType: 'code' },
+  },
+];
+
+export const codingExercises = [
+  {
+    id: 'q-code-js-1',
+    title: 'Agrupar anagramas',
+    prompt: 'Dada una lista de palabras, agrúpalas por anagramas.',
+    starterCode: 'function groupAnagrams(words) {\n  // TODO\n}\n',
+    language: 'javascript',
+  },
+  {
+    id: 'q-code-sql-1',
+    title: 'Top clientes por compras',
+    prompt: 'Obtén los 5 clientes con mayor monto comprado en el último mes.',
+    starterCode: 'SELECT customer_id, SUM(total) AS total_spent\nFROM orders\nGROUP BY customer_id;\n',
+    language: 'sql',
+  },
+];
