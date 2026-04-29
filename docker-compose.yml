@@ -61,10 +61,7 @@ services:
       TEMP_UPLOAD_DIR: /app/tmp/uploads
     ports:
       - "3000:3000"
-    volumes:
-      - ./media-service:/app
-      - /app/node_modules
-    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+    command: sh -c "npm run prisma:deploy && npm start"
 
   media-worker:
     build:
@@ -88,10 +85,7 @@ services:
       GCS_EMULATOR_HOST: http://gcs-emulator:4443
       TEMP_UPLOAD_DIR: /app/tmp/uploads
       SERVICE_BASE_URL: http://localhost:3000
-    volumes:
-      - ./media-service:/app
-      - /app/node_modules
-    command: sh -c "npx prisma generate && npm run prisma:deploy && npm run worker"
+    command: sh -c "npm run prisma:deploy && npm run worker"
 
 volumes:
   postgres_data:

@@ -1,24 +1,43 @@
+const fs = require("fs");
 const path = require("path");
-const { Storage } = require("@google-cloud/storage");
-const { env } = require("../config/env");
+const { Readable } = require("stream");
 
-if (env.gcsEmulatorHost) {
-  process.env.STORAGE_EMULATOR_HOST = env.gcsEmulatorHost;
+function trimTrailingSlash(value) {
+  return value.replace(/\/+$/, "");
 }
 
 class GcsStorageProvider {
-  constructor() {
-    this.client = new Storage({
-      projectId: env.gcsProjectId
-    });
-    this.bucket = this.client.bucket(env.gcsBucketName);
+  constructor(env) {
+    this.projectId = env.gcsProjectId;
+    this.bucketName = env.gcsBucketName;
+    this.baseUrl = trimTrailingSlash(env.gcsEmulatorHost || "http://localhost:4443");
   }
 
   async ensureBucketExists() {
-    const [exists] = await this.bucket.exists();
+    const bucketUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}`;
+    const response = await fetch(bucketUrl);
 
-    if (!exists) {
-      await this.bucket.create();
+    if (response.ok) {
+      return;
+    }
+
+    if (response.status !== 404) {
+      throw await this.buildRequestError(response, "Failed to check bucket existence");
+    }
+
+    const createBucketUrl = `${this.baseUrl}/storage/v1/b?project=${encodeURIComponent(this.projectId)}`;
+    const createResponse = await fetch(createBucketUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: this.bucketName
+      })
+    });
+
+    if (!createResponse.ok) {
+      throw await this.buildRequestError(createResponse, "Failed to create bucket");
     }
   }
 
@@ -32,32 +51,67 @@ class GcsStorageProvider {
   }
 
   async uploadFile({ sourcePath, destination, contentType }) {
-    await this.bucket.upload(sourcePath, {
-      destination,
-      metadata: {
-        contentType
-      }
+    const buffer = await fs.promises.readFile(sourcePath);
+    const uploadUrl = `${this.baseUrl}/upload/storage/v1/b/${encodeURIComponent(this.bucketName)}/o?uploadType=media&name=${encodeURIComponent(destination)}`;
+
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": contentType
+      },
+      body: buffer
     });
+
+    if (!response.ok) {
+      throw await this.buildRequestError(response, "Failed to upload file");
+    }
   }
 
   async deleteFile(storageKey) {
-    await this.bucket.file(storageKey).delete({ ignoreNotFound: true });
+    const deleteUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}`;
+    const response = await fetch(deleteUrl, {
+      method: "DELETE"
+    });
+
+    if (response.ok || response.status === 404) {
+      return;
+    }
+
+    throw await this.buildRequestError(response, "Failed to delete file");
   }
 
   getBucketName() {
-    return this.bucket.name;
+    return this.bucketName;
   }
 
   async streamFile(storageKey, writableStream) {
+    const fileUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}?alt=media`;
+    const response = await fetch(fileUrl);
+
+    if (!response.ok || !response.body) {
+      throw await this.buildRequestError(response, "Failed to stream file");
+    }
+
     await new Promise((resolve, reject) => {
-      const readStream = this.bucket.file(storageKey).createReadStream();
+      const readStream = Readable.fromWeb(response.body);
 
       readStream.on("error", reject);
       writableStream.on("error", reject);
-      writableStream.on("close", resolve);
-
+      writableStream.on("finish", resolve);
       readStream.pipe(writableStream);
     });
+  }
+
+  async buildRequestError(response, defaultMessage) {
+    let details = "";
+
+    try {
+      details = await response.text();
+    } catch (error) {
+      details = "";
+    }
+
+    return new Error(`${defaultMessage}. Status ${response.status}${details ? `: ${details}` : ""}`);
   }
 }
 
