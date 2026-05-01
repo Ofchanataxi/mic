@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/prisma/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SkillType {
+  TECHNICAL
+  SOFT
+}
+
+enum ExpectedLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum TopicSource {
+  CV_EXPLICIT
+  LLM_INFERRED
+  SYSTEM_DEFAULT
+}
+
+enum SeniorityLevel {
+  JUNIOR
+  MID
+  SENIOR
+}
+
+model CandidateProfile {
+  id                    String                         @id @default(uuid()) @db.Uuid
+  userId                String                         @unique
+  cvMediaId             String
+  fullName              String?
+  professionalSummary   String?
+  estimatedSeniority    SeniorityLevel?
+  targetRole            String?
+  yearsOfExperience     Float?
+  rawStructuredProfile  Json
+  topics                CandidateTopic[]
+  subtopics             CandidateSubtopic[]
+  performances          CandidateSubtopicPerformance[]
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  @@map("candidate_profiles")
+}
+
+model CandidateTopic {
+  id                   String              @id @default(uuid()) @db.Uuid
+  candidateProfileId   String              @db.Uuid
+  candidateProfile     CandidateProfile    @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  subtopics            CandidateSubtopic[]
+  name                 String
+  normalizedName       String
+  skillType            SkillType
+  category             String?
+  expectedLevel        ExpectedLevel?
+  source               TopicSource
+  priority             Int                 @default(0)
+  averageScore         Float?
+  usageCount           Int                 @default(0)
+  lastEvaluatedAt      DateTime?
+  reinforce            Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([candidateProfileId])
+  @@index([skillType])
+  @@unique([candidateProfileId, normalizedName, skillType])
+  @@map("candidate_topics")
+}
+
+model CandidateSubtopic {
+  id                   String                         @id @default(uuid()) @db.Uuid
+  candidateProfileId   String                         @db.Uuid
+  candidateProfile     CandidateProfile               @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  candidateTopicId     String                         @db.Uuid
+  candidateTopic       CandidateTopic                 @relation(fields: [candidateTopicId], references: [id], onDelete: Cascade)
+  performances         CandidateSubtopicPerformance[]
+  name                 String
+  normalizedName       String
+  skillType            SkillType
+  expectedLevel        ExpectedLevel?
+  source               TopicSource
+  priority             Int                            @default(0)
+  averageScore         Float?
+  usageCount           Int                            @default(0)
+  lastEvaluatedAt      DateTime?
+  reinforce            Boolean                        @default(false)
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  @@index([candidateProfileId])
+  @@index([candidateTopicId])
+  @@index([skillType])
+  @@unique([candidateTopicId, normalizedName])
+  @@map("candidate_subtopics")
+}
+
+model CandidateSubtopicPerformance {
+  id                   String              @id @default(uuid()) @db.Uuid
+  candidateProfileId   String              @db.Uuid
+  candidateProfile     CandidateProfile    @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  candidateSubtopicId  String              @db.Uuid
+  candidateSubtopic    CandidateSubtopic   @relation(fields: [candidateSubtopicId], references: [id], onDelete: Cascade)
+  interviewId          String
+  questionId           String?
+  score                Float
+  evaluationType       String?
+  feedback             String?
+  createdAt            DateTime            @default(now())
+
+  @@index([candidateProfileId])
+  @@index([candidateSubtopicId])
+  @@index([interviewId])
+  @@map("candidate_subtopic_performances")
+}

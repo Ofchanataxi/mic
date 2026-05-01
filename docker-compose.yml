@@ -98,6 +98,37 @@ services:
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run worker"
 
+  candidate-service:
+    build:
+      context: ./candidate-service
+    container_name: mic-candidate-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      media-service:
+        condition: service_started
+    env_file:
+      - ./candidate-service/.env.example
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=candidate
+      MEDIA_SERVICE_URL: http://media-service:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      SOFT_SKILLS_LIMIT: ${SOFT_SKILLS_LIMIT:-5}
+      ADAPTIVE_WEAK_SCORE_THRESHOLD: ${ADAPTIVE_WEAK_SCORE_THRESHOLD:-60}
+      ADAPTIVE_COVERAGE_RATIO: ${ADAPTIVE_COVERAGE_RATIO:-0.7}
+      ADAPTIVE_REINFORCEMENT_RATIO: ${ADAPTIVE_REINFORCEMENT_RATIO:-0.3}
+      ADAPTIVE_SOFT_SKILLS_RATIO: ${ADAPTIVE_SOFT_SKILLS_RATIO:-0.3}
+      ADAPTIVE_MAX_CONSECUTIVE_SAME_TOPIC: ${ADAPTIVE_MAX_CONSECUTIVE_SAME_TOPIC:-1}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./candidate-service:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
 volumes:
   postgres_data:
   gcs_data:
