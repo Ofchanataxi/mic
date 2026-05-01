@@ -1,0 +1,219 @@
+{
+  "info": {
+    "_postman_id": "bfee9393-6f57-4866-ad54-cdbc48da4d91",
+    "name": "mic-media-service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "49416137",
+    "_collection_link": "https://go.postman.co/collection/49416137-bfee9393-6f57-4866-ad54-cdbc48da4d91?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Subir PDF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "uuid": "a4137c54-9cbe-4dc6-84a1-2ec6ce52b47d",
+              "src": "/C:/Users/mrcolina/Documents/MIC/DESARROLLO/recursos/CVs/CV_1727511055_28042026.pdf"
+            },
+            {
+              "key": "resourceType",
+              "type": "text",
+              "uuid": "64b3dd41-25cd-4d3a-a059-0be14bbe76c9",
+              "value": "PDF"
+            },
+            {
+              "key": "interviewId",
+              "value": "interview-123",
+              "type": "text",
+              "uuid": "14d6e0e2-01be-4cce-8da9-92b6d2b8d28a"
+            },
+            {
+              "key": "ownerId",
+              "value": "candidate-456",
+              "type": "text",
+              "uuid": "8df874f8-64e5-4182-8877-80710fc9f506"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/media/upload",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "upload"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Subir Video",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "uuid": "513098a9-1d80-4a7e-af10-dd4583657b95",
+              "src": "/C:/Users/mrcolina/Documents/MIC/DESARROLLO/recursos/Videos/entrevista1.mp4"
+            },
+            {
+              "key": "resourceType",
+              "value": "VIDEO",
+              "type": "text",
+              "uuid": "905b2cde-55d1-4bdb-82ea-1ac339358fa7"
+            },
+            {
+              "key": "interviewId",
+              "value": "interview-123",
+              "type": "text",
+              "uuid": "63a3349c-c2bf-44ca-b6fc-203adf86977e"
+            },
+            {
+              "key": "ownerId",
+              "value": "candidate-456",
+              "type": "text",
+              "uuid": "a1532996-4118-4e70-9a6b-9c9d6d048d8f"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/media/upload",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "upload"
+          ],
+          "query": [
+            {
+              "key": "file",
+              "value": null,
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consultar estado video",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/media/28957b27-49f7-4a7c-9bbb-b1ae0c892f2d/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "28957b27-49f7-4a7c-9bbb-b1ae0c892f2d",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Acceder a un PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/media/b15cac14-4a19-475d-be19-715b3e798566/access",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "b15cac14-4a19-475d-be19-715b3e798566",
+            "access"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Acceder a un Video",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/media/71d174c3-9851-4dd3-b456-1650bb7b845c/access",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "71d174c3-9851-4dd3-b456-1650bb7b845c",
+            "access"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Descarga un Video",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/media/71d174c3-9851-4dd3-b456-1650bb7b845c/file",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "media",
+            "71d174c3-9851-4dd3-b456-1650bb7b845c",
+            "file"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    }
+  ]
+}

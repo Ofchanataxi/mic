@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,8 @@ services:
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.52.2
     container_name: mic-gcs-emulator
-    command: ["-scheme", "http", "-external-url", "http://localhost:4443", "-port", "4443"]
+    # Cambiamos localhost por el nombre del servicio para que el SDK lo reconozca internamente
+    command: ["-scheme", "http", "-port", "4443", "-public-host", "gcs-emulator"]
     ports:
       - "4443:4443"
     volumes:
@@ -61,7 +62,12 @@ services:
       TEMP_UPLOAD_DIR: /app/tmp/uploads
     ports:
       - "3000:3000"
-    command: sh -c "npm run prisma:deploy && npm start"
+    volumes:
+      - ./media-service:/app
+      - /app/node_modules
+      # VOLUMEN CRÍTICO: Compartido con el worker
+      - temp_uploads:/app/tmp/uploads
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
   media-worker:
     build:
@@ -85,8 +91,14 @@ services:
       GCS_EMULATOR_HOST: http://gcs-emulator:4443
       TEMP_UPLOAD_DIR: /app/tmp/uploads
       SERVICE_BASE_URL: http://localhost:3000
-    command: sh -c "npm run prisma:deploy && npm run worker"
+    volumes:
+      - ./media-service:/app
+      - /app/node_modules
+      # VOLUMEN CRÍTICO: El worker ahora sí verá los archivos del service
+      - temp_uploads:/app/tmp/uploads
+    command: sh -c "npx prisma generate && npm run worker"
 
 volumes:
   postgres_data:
   gcs_data:
+  temp_uploads: # Definimos el nuevo volumen aquí
