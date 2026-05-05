@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EvaluationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum InterviewEvaluationStatus {
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum QuestionEvaluationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum SkillType {
+  TECHNICAL
+  SOFT
+  CODE
+}
+
+model EvaluationJob {
+  id                  String               @id @default(uuid())
+  interviewId         String               @unique
+  userId              String
+  status              EvaluationJobStatus  @default(PENDING)
+  attempts            Int                  @default(0)
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  errorMessage        String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  interviewEvaluation InterviewEvaluation?
+}
+
+model InterviewEvaluation {
+  id                  String                    @id @default(uuid())
+  evaluationJobId     String                    @unique
+  interviewId         String                    @unique
+  userId              String
+  status              InterviewEvaluationStatus @default(PROCESSING)
+  overallScore        Float?
+  technicalScore      Float?
+  softSkillsScore     Float?
+  codeScore           Float?
+  audioScore          Float?
+  videoScore          Float?
+  semanticScore       Float?
+  totalQuestions      Int                       @default(0)
+  evaluatedQuestions  Int                       @default(0)
+  failedQuestions     Int                       @default(0)
+  summary             Json?
+  rawData             Json?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  evaluationJob       EvaluationJob             @relation(fields: [evaluationJobId], references: [id], onDelete: Cascade)
+  questionEvaluations QuestionEvaluation[]
+}
+
+model QuestionEvaluation {
+  id                       String                    @id @default(uuid())
+  interviewEvaluationId    String
+  interviewId              String
+  questionId               String
+  order                    Int?
+  candidateTopicId         String?
+  candidateSubtopicId      String?
+  skillType                SkillType
+  status                   QuestionEvaluationStatus  @default(PENDING)
+  questionText             String
+  answerText               String?
+  transcription            String?
+  codeSubmission           Json?
+  startTimeMs              Int?
+  endTimeMs                Int?
+  durationMs               Int?
+  semanticScore            Float?
+  audioScore               Float?
+  videoScore               Float?
+  codeScore                Float?
+  finalScore               Float?
+  strengths                Json?
+  weaknesses               Json?
+  recommendations          Json?
+  errorMessage             String?
+  rawSemanticEvaluation    Json?
+  rawAudioAnalysis         Json?
+  rawVideoAnalysis         Json?
+  rawCodeEvaluation        Json?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  interviewEvaluation      InterviewEvaluation       @relation(fields: [interviewEvaluationId], references: [id], onDelete: Cascade)
+  audioAnalysisResult      AudioAnalysisResult?
+  videoAnalysisResult      VideoAnalysisResult?
+  semanticEvaluationResult SemanticEvaluationResult?
+  codeEvaluationResult     CodeEvaluationResult?
+
+  @@unique([interviewId, questionId])
+}
+
+model AudioAnalysisResult {
+  id                    String             @id @default(uuid())
+  questionEvaluationId  String             @unique
+  durationMs            Int?
+  wordCount             Int?
+  speechRate            Float?
+  pauseCount            Int?
+  averagePauseMs        Float?
+  fluencyScore          Float?
+  confidenceIndicators  Json?
+  rawData               Json?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  questionEvaluation    QuestionEvaluation @relation(fields: [questionEvaluationId], references: [id], onDelete: Cascade)
+}
+
+model VideoAnalysisResult {
+  id                   String             @id @default(uuid())
+  questionEvaluationId String             @unique
+  eyeContactScore      Float?
+  postureScore         Float?
+  attentionScore       Float?
+  observableBehavior   Json?
+  rawData              Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  questionEvaluation   QuestionEvaluation @relation(fields: [questionEvaluationId], references: [id], onDelete: Cascade)
+}
+
+model SemanticEvaluationResult {
+  id                       String             @id @default(uuid())
+  questionEvaluationId     String             @unique
+  coherenceScore           Float?
+  technicalAccuracyScore   Float?
+  clarityScore             Float?
+  depthScore               Float?
+  relevanceScore           Float?
+  overallSemanticScore     Float?
+  justification            String?
+  rawData                  Json?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  questionEvaluation       QuestionEvaluation @relation(fields: [questionEvaluationId], references: [id], onDelete: Cascade)
+}
+
+model CodeEvaluationResult {
+  id                   String             @id @default(uuid())
+  questionEvaluationId String             @unique
+  passedTests          Int?
+  totalTests           Int?
+  executionScore       Float?
+  compilationStatus    String?
+  runtimeError         String?
+  simulated            Boolean            @default(true)
+  rawData              Json?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  questionEvaluation   QuestionEvaluation @relation(fields: [questionEvaluationId], references: [id], onDelete: Cascade)
+}

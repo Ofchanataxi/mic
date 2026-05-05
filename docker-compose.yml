@@ -98,7 +98,94 @@ services:
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run worker"
 
+  evaluation-service:
+    build:
+      context: ./evaluation-service
+    container_name: mic-evaluation-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      media-service:
+        condition: service_started
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=evaluation
+      REDIS_URL: redis://redis:6379
+      EVALUATION_QUEUE_NAME: evaluation-jobs
+      MAX_EVALUATION_ATTEMPTS: 3
+      INTERVIEW_SERVICE_URL: http://interview-service:3003
+      MEDIA_SERVICE_URL: http://media-service:3000
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      FEEDBACK_SERVICE_URL: http://feedback-service:3004
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
+      TEMP_PROCESSING_DIR: /app/tmp/evaluation
+      TECHNICAL_SEMANTIC_WEIGHT: 0.8
+      TECHNICAL_AUDIO_WEIGHT: 0.2
+      TECHNICAL_VIDEO_WEIGHT: 0.0
+      SOFT_SEMANTIC_WEIGHT: 0.7
+      SOFT_AUDIO_WEIGHT: 0.3
+      SOFT_VIDEO_WEIGHT: 0.0
+      CODE_CODE_WEIGHT: 0.8
+      CODE_SEMANTIC_WEIGHT: 0.2
+      ALLOW_COMPLETED_REPROCESS: "false"
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./evaluation-service:/app
+      - /app/node_modules
+      - evaluation_tmp:/app/tmp/evaluation
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
+  evaluation-worker:
+    build:
+      context: ./evaluation-service
+    container_name: mic-evaluation-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      media-service:
+        condition: service_started
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=evaluation
+      REDIS_URL: redis://redis:6379
+      EVALUATION_QUEUE_NAME: evaluation-jobs
+      MAX_EVALUATION_ATTEMPTS: 3
+      INTERVIEW_SERVICE_URL: http://interview-service:3003
+      MEDIA_SERVICE_URL: http://media-service:3000
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      FEEDBACK_SERVICE_URL: http://feedback-service:3004
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
+      TEMP_PROCESSING_DIR: /app/tmp/evaluation
+      TECHNICAL_SEMANTIC_WEIGHT: 0.8
+      TECHNICAL_AUDIO_WEIGHT: 0.2
+      TECHNICAL_VIDEO_WEIGHT: 0.0
+      SOFT_SEMANTIC_WEIGHT: 0.7
+      SOFT_AUDIO_WEIGHT: 0.3
+      SOFT_VIDEO_WEIGHT: 0.0
+      CODE_CODE_WEIGHT: 0.8
+      CODE_SEMANTIC_WEIGHT: 0.2
+      ALLOW_COMPLETED_REPROCESS: "false"
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    volumes:
+      - ./evaluation-service:/app
+      - /app/node_modules
+      - evaluation_tmp:/app/tmp/evaluation
+    command: sh -c "npx prisma generate && npm run worker"
+
 volumes:
   postgres_data:
   gcs_data:
   temp_uploads: # Definimos el nuevo volumen aquí
+  evaluation_tmp:
