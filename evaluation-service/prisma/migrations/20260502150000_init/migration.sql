@@ -130,7 +130,7 @@ CREATE TABLE "evaluation"."CodeEvaluationResult" (
   "executionScore" DOUBLE PRECISION,
   "compilationStatus" TEXT,
   "runtimeError" TEXT,
-  "simulated" BOOLEAN NOT NULL DEFAULT true,
+  "simulated" BOOLEAN NOT NULL DEFAULT false,
   "rawData" JSONB,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,

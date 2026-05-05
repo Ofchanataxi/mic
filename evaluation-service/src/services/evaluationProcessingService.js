@@ -79,7 +79,7 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
       startTimeMs: question.startTimeMs,
       endTimeMs: question.endTimeMs,
     });
-    const code = codeEvaluationService.evaluateCode({
+    const code = await codeEvaluationService.evaluateCode({
       skillType: question.skillType,
       codeSubmission: question.codeSubmission,
     });
@@ -115,7 +115,7 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
         executionScore: code.codeScore,
         compilationStatus: code.compilationStatus,
         runtimeError: code.runtimeError,
-        simulated: true,
+        simulated: code.simulated,
         rawData: code.rawData,
       }) : Promise.resolve(),
     ]);
