@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FeedbackJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FeedbackReportStatus {
+  GENERATING
+  READY
+  FAILED
+}
+
+enum FeedbackSkillType {
+  TECHNICAL
+  SOFT
+  CODE
+}
+
+model FeedbackJob {
+  id           String            @id @default(uuid())
+  interviewId  String            @unique
+  userId       String
+  evaluationId String?
+  status       FeedbackJobStatus @default(PENDING)
+  attempts     Int               @default(0)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  errorMessage String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  report       FeedbackReport?
+}
+
+model FeedbackReport {
+  id                     String                   @id @default(uuid())
+  feedbackJobId          String                   @unique
+  interviewId            String                   @unique
+  userId                 String
+  evaluationId           String?
+  status                 FeedbackReportStatus     @default(GENERATING)
+  overallScore           Float?
+  technicalScore         Float?
+  softSkillsScore        Float?
+  codeScore              Float?
+  audioScore             Float?
+  videoScore             Float?
+  executiveSummary       String?
+  generalLevel           String?
+  strengths              Json?
+  improvementAreas       Json?
+  recommendations        Json?
+  technicalFeedback      Json?
+  softSkillsFeedback     Json?
+  codeFeedback           Json?
+  audioFeedback          Json?
+  videoFeedback          Json?
+  multimodalObservations Json?
+  questionFeedback       Json?
+  rawEvaluationData      Json?
+  generatedReport        Json?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  feedbackJob            FeedbackJob              @relation(fields: [feedbackJobId], references: [id], onDelete: Cascade)
+  questionDetails        FeedbackQuestionDetail[]
+}
+
+model FeedbackQuestionDetail {
+  id                   String            @id @default(uuid())
+  feedbackReportId     String
+  interviewId          String
+  questionId           String
+  order                Int?
+  skillType            FeedbackSkillType
+  questionText         String
+  candidateSubtopicId  String?
+  topicName            String?
+  subtopicName         String?
+  score                Float?
+  summary              String?
+  strengths            Json?
+  weaknesses           Json?
+  recommendations      Json?
+  semanticNotes        String?
+  audioNotes           String?
+  videoNotes           String?
+  codeNotes            String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  feedbackReport       FeedbackReport    @relation(fields: [feedbackReportId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewId, questionId])
+}

@@ -30,7 +30,6 @@ services:
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.52.2
     container_name: mic-gcs-emulator
-    # Cambiamos localhost por el nombre del servicio para que el SDK lo reconozca internamente
     command: ["-scheme", "http", "-port", "4443", "-public-host", "gcs-emulator"]
     ports:
       - "4443:4443"
@@ -65,7 +64,6 @@ services:
     volumes:
       - ./media-service:/app
       - /app/node_modules
-      # VOLUMEN CRÍTICO: Compartido con el worker
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
@@ -94,9 +92,39 @@ services:
     volumes:
       - ./media-service:/app
       - /app/node_modules
-      # VOLUMEN CRÍTICO: El worker ahora sí verá los archivos del service
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run worker"
+
+  candidate-service:
+    build:
+      context: ./candidate-service
+    container_name: mic-candidate-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      media-service:
+        condition: service_started
+    env_file:
+      - ./candidate-service/.env.example
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=candidate
+      MEDIA_SERVICE_URL: http://media-service:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      SOFT_SKILLS_LIMIT: ${SOFT_SKILLS_LIMIT:-5}
+      ADAPTIVE_WEAK_SCORE_THRESHOLD: ${ADAPTIVE_WEAK_SCORE_THRESHOLD:-60}
+      ADAPTIVE_COVERAGE_RATIO: ${ADAPTIVE_COVERAGE_RATIO:-0.7}
+      ADAPTIVE_REINFORCEMENT_RATIO: ${ADAPTIVE_REINFORCEMENT_RATIO:-0.3}
+      ADAPTIVE_SOFT_SKILLS_RATIO: ${ADAPTIVE_SOFT_SKILLS_RATIO:-0.3}
+      ADAPTIVE_MAX_CONSECUTIVE_SAME_TOPIC: ${ADAPTIVE_MAX_CONSECUTIVE_SAME_TOPIC:-1}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./candidate-service:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
   evaluation-service:
     build:
@@ -109,6 +137,8 @@ services:
         condition: service_healthy
       media-service:
         condition: service_started
+      candidate-service:
+        condition: service_started
     environment:
       PORT: 3002
       NODE_ENV: development
@@ -120,7 +150,7 @@ services:
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       FEEDBACK_SERVICE_URL: http://feedback-service:3004
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
       JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
@@ -156,6 +186,8 @@ services:
         condition: service_healthy
       media-service:
         condition: service_started
+      candidate-service:
+        condition: service_started
     environment:
       PORT: 3002
       NODE_ENV: development
@@ -167,7 +199,7 @@ services:
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       FEEDBACK_SERVICE_URL: http://feedback-service:3004
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
       JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
@@ -190,8 +222,68 @@ services:
       - evaluation_tmp:/app/tmp/evaluation
     command: sh -c "npx prisma generate && npm run worker"
 
+  feedback-service:
+    build:
+      context: ./feedback-service
+    container_name: mic-feedback-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      evaluation-service:
+        condition: service_started
+    environment:
+      PORT: 3004
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=feedback
+      REDIS_URL: redis://redis:6379
+      FEEDBACK_QUEUE_NAME: feedback-jobs
+      MAX_FEEDBACK_ATTEMPTS: 3
+      EVALUATION_SERVICE_URL: http://evaluation-service:3002
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      ALLOW_READY_REPORT_REGENERATION: "false"
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./feedback-service:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
+  feedback-worker:
+    build:
+      context: ./feedback-service
+    container_name: mic-feedback-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      evaluation-service:
+        condition: service_started
+    environment:
+      PORT: 3004
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=feedback
+      REDIS_URL: redis://redis:6379
+      FEEDBACK_QUEUE_NAME: feedback-jobs
+      MAX_FEEDBACK_ATTEMPTS: 3
+      EVALUATION_SERVICE_URL: http://evaluation-service:3002
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      ALLOW_READY_REPORT_REGENERATION: "false"
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+    volumes:
+      - ./feedback-service:/app
+      - /app/node_modules
+    command: sh -c "npx prisma generate && npm run worker"
+
 volumes:
   postgres_data:
   gcs_data:
-  temp_uploads: # Definimos el nuevo volumen aquí
+  temp_uploads:
   evaluation_tmp:
