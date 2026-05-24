@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/prisma/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ResourceType {
+  VIDEO
+  PDF
+}
+
+enum MediaStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Media {
+  id               String       @id @default(uuid()) @db.Uuid
+  resourceType     ResourceType
+  interviewId      String
+  ownerId          String
+  originalFilename String
+  mimeType         String
+  storageKey       String?
+  bucketName       String?
+  sizeBytes        BigInt
+  status           MediaStatus  @default(UPLOADED)
+  durationMs       Int?
+  errorMessage     String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([interviewId])
+  @@index([ownerId])
+  @@index([status])
+  @@map("media")
+}

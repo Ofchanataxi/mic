@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Runtime and temporary files
+tmp/
+**/tmp/
+uploads/
+**/uploads/
+coverage/
+**/coverage/
+dist/
+**/dist/
+build/
+**/build/
+
+# Prisma generated clients and native engines
+**/src/prisma/generated/
+**/prisma/generated/
+**/*.dll.node
+**/query_engine*
+**/libquery_engine*
+**/schema-engine*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
