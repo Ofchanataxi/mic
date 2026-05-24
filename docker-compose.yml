@@ -129,6 +129,39 @@ services:
       - /app/src/prisma/generated
     command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: mic-auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./auth-service/.env.example
+    environment:
+      PORT: 3005
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=auth
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      JWT_ISSUER: ${JWT_ISSUER:-mic-auth-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mic-platform}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-10}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123456}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-Admin}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-MIC}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+      - /app/src/prisma/generated
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
   interview-service:
     build:
       context: ./interview-service
@@ -322,6 +355,52 @@ services:
       - ./feedback-service:/app
       - /app/node_modules
     command: sh -c "npx prisma generate && npm run worker"
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: mic-api-gateway
+    depends_on:
+      auth-service:
+        condition: service_started
+      media-service:
+        condition: service_started
+      candidate-service:
+        condition: service_started
+      interview-service:
+        condition: service_started
+      evaluation-service:
+        condition: service_started
+      feedback-service:
+        condition: service_started
+    env_file:
+      - ./api-gateway/.env.example
+    environment:
+      PORT: 8080
+      NODE_ENV: development
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      JWT_ISSUER: ${JWT_ISSUER:-mic-auth-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mic-platform}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      AUTH_SERVICE_URL: http://auth-service:3005
+      MEDIA_SERVICE_URL: http://media-service:3000
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      INTERVIEW_SERVICE_URL: http://interview-service:3002
+      EVALUATION_SERVICE_URL: http://evaluation-service:3003
+      FEEDBACK_SERVICE_URL: http://feedback-service:3004
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:3000}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 300
+      JSON_BODY_LIMIT: 10mb
+      DEFAULT_PROXY_TIMEOUT_MS: 120000
+      MEDIA_PROXY_TIMEOUT_MS: 300000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
+    command: npm start
 
 volumes:
   postgres_data:
