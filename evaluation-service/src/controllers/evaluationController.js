@@ -28,6 +28,21 @@ const processInterview = asyncHandler(async (req, res) => {
   });
 });
 
+const enqueueInterviewEvaluation = asyncHandler(async (req, res) => {
+  const { interviewId } = req.body || {};
+  if (!interviewId || typeof interviewId !== 'string') {
+    throw new AppError('interviewId is required', 400);
+  }
+
+  const result = await evaluationJobService.processInterview({ interviewId });
+  res.status(202).json({
+    evaluationJobId: result.job.id,
+    interviewId: result.job.interviewId,
+    status: result.job.status,
+    message: result.message,
+  });
+});
+
 const getJobStatus = asyncHandler(async (req, res) => {
   const { interviewId } = req.params;
   const job = await evaluationJobService.getJobStatus(interviewId);
@@ -112,6 +127,7 @@ const retryInterview = asyncHandler(async (req, res) => {
 module.exports = {
   health,
   processInterview,
+  enqueueInterviewEvaluation,
   getJobStatus,
   getInterviewEvaluation,
   getInterviewQuestions,

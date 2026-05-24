@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/prisma/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InterviewStatus {
+  CREATED
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+enum EvaluationDispatchStatus {
+  NOT_REQUESTED
+  DISPATCHED
+  DISPATCH_FAILED
+}
+
+enum QuestionType {
+  TECHNICAL
+  SOFT_SKILL
+  CODING
+}
+
+enum SkillType {
+  TECHNICAL
+  SOFT
+}
+
+enum ExpectedLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum SeniorityLevel {
+  JUNIOR
+  MID
+  SENIOR
+}
+
+model Interview {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  userId             String
+  candidateProfileId String
+  targetRole         String?
+  level              SeniorityLevel?
+  status             InterviewStatus         @default(CREATED)
+  evaluationStatus   EvaluationDispatchStatus @default(NOT_REQUESTED)
+  questionCount      Int
+  videoMediaId       String?
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  questions          InterviewQuestion[]
+  responses          InterviewResponse[]
+  codeSubmissions    InterviewCodeSubmission[]
+  generationAttempts QuestionGenerationAttempt[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([userId])
+  @@index([candidateProfileId])
+  @@index([status])
+  @@map("interviews")
+}
+
+model InterviewQuestion {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  interviewId          String                    @db.Uuid
+  interview            Interview                 @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  candidateTopicId     String
+  candidateSubtopicId  String
+  skillType            SkillType
+  topic                String
+  subtopic             String
+  questionType         QuestionType
+  prompt               String
+  language             String?
+  orderIndex           Int
+  expectedLevel        ExpectedLevel?
+  generatedByModel     String?
+  generationAttempts   Int                       @default(1)
+  response             InterviewResponse?
+  codeSubmission       InterviewCodeSubmission?
+  embedding            QuestionEmbedding?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@index([interviewId])
+  @@index([candidateSubtopicId])
+  @@unique([interviewId, orderIndex])
+  @@map("interview_questions")
+}
+
+model InterviewResponse {
+  id              String            @id @default(uuid()) @db.Uuid
+  interviewId     String            @db.Uuid
+  interview       Interview         @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  questionId      String            @unique @db.Uuid
+  question        InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerText      String?
+  videoStartMs    Int
+  videoEndMs      Int
+  answerStartedAt DateTime?
+  answerEndedAt   DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([interviewId])
+  @@map("interview_responses")
+}
+
+model InterviewCodeSubmission {
+  id          String            @id @default(uuid()) @db.Uuid
+  interviewId String            @db.Uuid
+  interview   Interview         @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  questionId  String            @unique @db.Uuid
+  question    InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  language    String?
+  code        String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([interviewId])
+  @@map("interview_code_submissions")
+}
+
+model QuestionEmbedding {
+  id                  String            @id @default(uuid()) @db.Uuid
+  userId              String
+  interviewQuestionId String            @unique @db.Uuid
+  interviewQuestion   InterviewQuestion @relation(fields: [interviewQuestionId], references: [id], onDelete: Cascade)
+  prompt              String
+  embedding           Json
+  model               String
+  createdAt           DateTime          @default(now())
+
+  @@index([userId])
+  @@map("question_embeddings")
+}
+
+model QuestionGenerationAttempt {
+  id                  String    @id @default(uuid()) @db.Uuid
+  interviewId          String    @db.Uuid
+  interview            Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  candidateSubtopicId  String
+  attemptNumber        Int
+  prompt               String
+  similarityScore      Float?
+  accepted             Boolean
+  rejectionReason      String?
+  createdAt            DateTime  @default(now())
+
+  @@index([interviewId])
+  @@index([candidateSubtopicId])
+  @@map("question_generation_attempts")
+}

@@ -2,14 +2,24 @@ const evaluationJobRepository = require('../repositories/evaluationJobRepository
 const interviewEvaluationRepository = require('../repositories/interviewEvaluationRepository');
 const questionEvaluationRepository = require('../repositories/questionEvaluationRepository');
 const { enqueueEvaluationJob } = require('../workers/queues/evaluationQueue');
+const interviewClient = require('../clients/interviewClient');
 const env = require('../config/env');
 const { AppError } = require('../middlewares/errorMiddleware');
 
 const processInterview = async ({ interviewId, userId }) => {
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const interviewData = await interviewClient.getEvaluationData(interviewId);
+    if (!interviewData?.userId) {
+      throw new AppError('interview-service response is missing userId', 502);
+    }
+    resolvedUserId = interviewData.userId;
+  }
+
   let job = await evaluationJobRepository.findByInterviewId(interviewId);
 
   if (!job) {
-    job = await evaluationJobRepository.create({ interviewId, userId });
+    job = await evaluationJobRepository.create({ interviewId, userId: resolvedUserId });
   }
 
   if (job.status === 'COMPLETED') {
@@ -34,7 +44,7 @@ const processInterview = async ({ interviewId, userId }) => {
   await enqueueEvaluationJob({
     evaluationJobId: job.id,
     interviewId,
-    userId,
+    userId: resolvedUserId,
     force: wasFailed,
   });
 

@@ -1,1 +1,8 @@
-// Entry point for interview-service
+const { createApp } = require("./app");
+const { env } = require("./config/env");
+
+const app = createApp();
+
+app.listen(env.port, () => {
+  console.log(`interview-service listening on port ${env.port}`);
+});

@@ -65,21 +65,34 @@ const candidateProfileSchema = {
 
 class OpenAiProvider {
   constructor() {
-    this.client = new OpenAI({
-      apiKey: env.openAiApiKey
-    });
+    this.client = null;
+  }
+
+  getClient() {
+    if (!env.openAiApiKey) {
+      throw new ApiError(500, "OPENAI_API_KEY is required to analyze CVs");
+    }
+
+    if (!this.client) {
+      this.client = new OpenAI({
+        apiKey: env.openAiApiKey
+      });
+    }
+
+    return this.client;
   }
 
   async analyzeCvPdf({ pdfBuffer, mediaId, targetRole, level }) {
     let uploadedFile;
+    const client = this.getClient();
 
     try {
-      uploadedFile = await this.client.files.create({
+      uploadedFile = await client.files.create({
         file: await toFile(pdfBuffer, `cv-${mediaId}.pdf`, { type: "application/pdf" }),
         purpose: "user_data"
       });
 
-      const response = await this.client.responses.create({
+      const response = await client.responses.create({
         model: env.openAiModel,
         input: [
           {
@@ -119,7 +132,7 @@ class OpenAiProvider {
     } finally {
       if (uploadedFile && uploadedFile.id) {
         try {
-          await this.client.files.del(uploadedFile.id);
+          await client.files.del(uploadedFile.id);
         } catch (error) {
           // File cleanup failure should not fail profile creation.
         }

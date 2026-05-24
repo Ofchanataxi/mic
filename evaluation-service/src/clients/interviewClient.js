@@ -7,7 +7,7 @@ const client = axios.create({
 });
 
 const getEvaluationData = async (interviewId) => {
-  const response = await client.get(`/interviews/${encodeURIComponent(interviewId)}/evaluation-data`);
+  const response = await client.get(`/interviews/${encodeURIComponent(interviewId)}/evaluation-payload`);
   return response.data;
 };
 

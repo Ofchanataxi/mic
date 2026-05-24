@@ -64,6 +64,7 @@ services:
     volumes:
       - ./media-service:/app
       - /app/node_modules
+      - /app/src/prisma/generated
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
@@ -92,6 +93,7 @@ services:
     volumes:
       - ./media-service:/app
       - /app/node_modules
+      - /app/src/prisma/generated
       - temp_uploads:/app/tmp/uploads
     command: sh -c "npx prisma generate && npm run worker"
 
@@ -112,7 +114,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=candidate
       MEDIA_SERVICE_URL: http://media-service:3000
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       SOFT_SKILLS_LIMIT: ${SOFT_SKILLS_LIMIT:-5}
       ADAPTIVE_WEAK_SCORE_THRESHOLD: ${ADAPTIVE_WEAK_SCORE_THRESHOLD:-60}
       ADAPTIVE_COVERAGE_RATIO: ${ADAPTIVE_COVERAGE_RATIO:-0.7}
@@ -124,6 +126,41 @@ services:
     volumes:
       - ./candidate-service:/app
       - /app/node_modules
+      - /app/src/prisma/generated
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
+  interview-service:
+    build:
+      context: ./interview-service
+    container_name: mic-interview-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      candidate-service:
+        condition: service_started
+    env_file:
+      - ./interview-service/.env.example
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=interview
+      CANDIDATE_SERVICE_URL: http://candidate-service:3001
+      EVALUATION_SERVICE_URL: http://evaluation-service:3003
+      ENABLE_EVALUATION_DISPATCH: ${ENABLE_EVALUATION_DISPATCH:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_QUESTION_MODEL: ${OPENAI_QUESTION_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      DEFAULT_QUESTION_COUNT: ${DEFAULT_QUESTION_COUNT:-8}
+      MIN_QUESTION_COUNT: ${MIN_QUESTION_COUNT:-5}
+      MAX_QUESTION_COUNT: ${MAX_QUESTION_COUNT:-12}
+      QUESTION_GENERATION_MAX_ATTEMPTS: ${QUESTION_GENERATION_MAX_ATTEMPTS:-3}
+      QUESTION_SIMILARITY_THRESHOLD: ${QUESTION_SIMILARITY_THRESHOLD:-0.85}
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./interview-service:/app
+      - /app/node_modules
+      - /app/src/prisma/generated
     command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
   evaluation-service:
@@ -139,14 +176,16 @@ services:
         condition: service_started
       candidate-service:
         condition: service_started
+      interview-service:
+        condition: service_started
     environment:
-      PORT: 3002
+      PORT: 3003
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=evaluation
       REDIS_URL: redis://redis:6379
       EVALUATION_QUEUE_NAME: evaluation-jobs
       MAX_EVALUATION_ATTEMPTS: 3
-      INTERVIEW_SERVICE_URL: http://interview-service:3003
+      INTERVIEW_SERVICE_URL: http://interview-service:3002
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       FEEDBACK_SERVICE_URL: http://feedback-service:3004
@@ -168,7 +207,7 @@ services:
       ALLOW_COMPLETED_REPROCESS: "false"
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     ports:
-      - "3002:3002"
+      - "3003:3003"
     volumes:
       - ./evaluation-service:/app
       - /app/node_modules
@@ -188,14 +227,16 @@ services:
         condition: service_started
       candidate-service:
         condition: service_started
+      interview-service:
+        condition: service_started
     environment:
-      PORT: 3002
+      PORT: 3003
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=evaluation
       REDIS_URL: redis://redis:6379
       EVALUATION_QUEUE_NAME: evaluation-jobs
       MAX_EVALUATION_ATTEMPTS: 3
-      INTERVIEW_SERVICE_URL: http://interview-service:3003
+      INTERVIEW_SERVICE_URL: http://interview-service:3002
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       FEEDBACK_SERVICE_URL: http://feedback-service:3004
@@ -240,7 +281,7 @@ services:
       REDIS_URL: redis://redis:6379
       FEEDBACK_QUEUE_NAME: feedback-jobs
       MAX_FEEDBACK_ATTEMPTS: 3
-      EVALUATION_SERVICE_URL: http://evaluation-service:3002
+      EVALUATION_SERVICE_URL: http://evaluation-service:3003
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
@@ -271,7 +312,7 @@ services:
       REDIS_URL: redis://redis:6379
       FEEDBACK_QUEUE_NAME: feedback-jobs
       MAX_FEEDBACK_ATTEMPTS: 3
-      EVALUATION_SERVICE_URL: http://evaluation-service:3002
+      EVALUATION_SERVICE_URL: http://evaluation-service:3003
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}

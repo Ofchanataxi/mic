@@ -18,6 +18,41 @@ const evaluationJobRepository = require('../repositories/evaluationJobRepository
 const interviewEvaluationRepository = require('../repositories/interviewEvaluationRepository');
 const questionEvaluationRepository = require('../repositories/questionEvaluationRepository');
 
+const mapCodeSubmission = (codeSubmission) => {
+  if (!codeSubmission) return null;
+  return {
+    ...codeSubmission,
+    sourceCode: codeSubmission.sourceCode || codeSubmission.code || '',
+  };
+};
+
+const mapEvaluationSkillType = (question) => {
+  if (question.questionType === 'CODING' || question.skillType === 'CODE') return 'CODE';
+  return question.skillType;
+};
+
+const normalizeQuestion = (question) => {
+  const response = question.response || {};
+  const codeSubmission = response.codeSubmission || question.codeSubmission || null;
+
+  return {
+    ...question,
+    order: question.order ?? question.orderIndex,
+    skillType: mapEvaluationSkillType(question),
+    questionText: question.questionText || question.prompt,
+    answerText: question.answerText ?? response.answerText ?? null,
+    codeSubmission: mapCodeSubmission(codeSubmission),
+    startTimeMs: question.startTimeMs ?? response.videoStartMs,
+    endTimeMs: question.endTimeMs ?? response.videoEndMs,
+  };
+};
+
+const normalizeInterviewData = (data) => ({
+  ...data,
+  mediaId: data.mediaId || data.videoMediaId || null,
+  questions: Array.isArray(data.questions) ? data.questions.map(normalizeQuestion) : data.questions,
+});
+
 const validateInterviewData = (data, expectedInterviewId) => {
   if (!data?.interviewId) throw new Error('interview-service response is missing interviewId');
   if (data.interviewId !== expectedInterviewId) throw new Error('interview-service returned a different interviewId');
@@ -37,8 +72,13 @@ const validateQuestion = (question) => {
 
 const resolveVideoAccessUrl = async (interviewData) => {
   if (interviewData.mediaId) {
+    const media = await mediaClient.getMedia(interviewData.mediaId);
+    if (media.resourceType !== 'VIDEO') throw new Error('Interview mediaId must reference a VIDEO resource');
+    if (media.status !== 'READY') throw new Error(`Interview video media must be READY before evaluation. Current status: ${media.status}`);
+
     const access = await mediaClient.getMediaAccess(interviewData.mediaId);
     if (!access?.accessUrl) throw new Error('media-service access response is missing accessUrl');
+    if (access.resourceType !== 'VIDEO') throw new Error('media-service access response is not a VIDEO resource');
     return access.accessUrl;
   }
   return interviewData.videoAccessUrl;
@@ -196,7 +236,7 @@ const processEvaluation = async ({ evaluationJobId, interviewId, userId }) => {
 
   try {
     await ffmpegProvider.ensureFfmpegAvailable();
-    const interviewData = await interviewClient.getEvaluationData(interviewId);
+    const interviewData = normalizeInterviewData(await interviewClient.getEvaluationData(interviewId));
     validateInterviewData(interviewData, interviewId);
     logger.info('Interview evaluation data fetched', { interviewId, questions: interviewData.questions.length });
 

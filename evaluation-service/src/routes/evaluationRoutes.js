@@ -8,6 +8,7 @@ router.get('/health', evaluationController.health);
 
 router.use(internalAuthMiddleware);
 
+router.post('/evaluations/interviews', evaluationController.enqueueInterviewEvaluation);
 router.post('/evaluations/process', evaluationController.processInterview);
 router.get('/evaluations/jobs/:interviewId/status', evaluationController.getJobStatus);
 router.get('/evaluations/interviews/:interviewId', evaluationController.getInterviewEvaluation);
