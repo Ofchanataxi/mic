@@ -129,6 +129,39 @@ services:
       - /app/src/prisma/generated
     command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
 
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: mic-auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./auth-service/.env.example
+    environment:
+      PORT: 3005
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=auth
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      JWT_ISSUER: ${JWT_ISSUER:-mic-auth-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mic-platform}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-10}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123456}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-Admin}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-MIC}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+      - /app/src/prisma/generated
+    command: sh -c "npx prisma generate && npm run prisma:deploy && npm start"
+
   interview-service:
     build:
       context: ./interview-service
@@ -328,6 +361,8 @@ services:
       context: ./api-gateway
     container_name: mic-api-gateway
     depends_on:
+      auth-service:
+        condition: service_started
       media-service:
         condition: service_started
       candidate-service:
@@ -344,8 +379,8 @@ services:
       PORT: 8080
       NODE_ENV: development
       JWT_SECRET: ${JWT_SECRET:-dev-secret}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_ISSUER: ${JWT_ISSUER:-mic-auth-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mic-platform}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
       AUTH_SERVICE_URL: http://auth-service:3005
       MEDIA_SERVICE_URL: http://media-service:3000
