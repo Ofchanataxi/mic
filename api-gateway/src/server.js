@@ -45,14 +45,6 @@ const limiter = rateLimit({
   },
 });
 
-const jsonParserUnlessMultipart = (req, res, next) => {
-  const contentType = req.headers['content-type'] || '';
-  if (contentType.toLowerCase().includes('multipart/form-data')) {
-    return next();
-  }
-  return express.json({ limit: env.jsonBodyLimit })(req, res, next);
-};
-
 app.disable('x-powered-by');
 app.use(requestIdMiddleware);
 app.use(helmet());
@@ -62,7 +54,6 @@ app.use(limiter);
 app.use(httpLogger);
 app.use(markInternalService);
 app.use(healthRoutes);
-app.use(jsonParserUnlessMultipart);
 app.use(gatewayRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

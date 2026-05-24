@@ -37,14 +37,20 @@ const createServiceProxy = ({
   target,
   prefix,
   timeoutMs = env.defaultProxyTimeoutMs,
-}) => createProxyMiddleware({
-  target,
-  changeOrigin: true,
-  proxyTimeout: timeoutMs,
-  timeout: timeoutMs,
-  pathRewrite: {
-    [`^${prefix}`]: prefix.replace('/api/v1', ''),
-  },
+}) => {
+  const upstreamPrefix = prefix.replace('/api/v1', '');
+
+  return createProxyMiddleware({
+    pathFilter: prefix,
+    target,
+    changeOrigin: true,
+    proxyTimeout: timeoutMs,
+    timeout: timeoutMs,
+    pathRewrite: (path) => {
+      if (path.startsWith(prefix)) return path.replace(prefix, upstreamPrefix);
+      if (path.startsWith(upstreamPrefix)) return path;
+      return `${upstreamPrefix}${path.startsWith('/') ? path : `/${path}`}`;
+    },
   on: {
     proxyReq: (proxyReq, req, res) => {
       const headers = buildProxyHeaders(req);
@@ -81,7 +87,8 @@ const createServiceProxy = ({
       }
     },
   },
-});
+  });
+};
 
 module.exports = {
   createServiceProxy,

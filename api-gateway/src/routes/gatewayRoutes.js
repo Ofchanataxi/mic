@@ -16,19 +16,32 @@ const publicAuthPaths = [
   '/api/v1/auth/refresh',
 ];
 
-const isPublicAuthPath = (req) => publicAuthPaths.includes(req.path);
+const isPublicAuthPath = (req) => {
+  const path = req.originalUrl.split('?')[0];
+  return publicAuthPaths.includes(path);
+};
 
 const authGate = (req, res, next) => {
   if (isPublicAuthPath(req)) return optionalAuthenticate(req, res, next);
   return authenticate(req, res, next);
 };
 
-router.use('/api/v1/auth', authGate, authProxy);
+router.use('/api/v1/auth', authGate);
+router.use(authProxy);
 
-router.use('/api/v1/media', authenticate, allowAuthenticated, mediaProxy);
-router.use('/api/v1/candidates', authenticate, allowAuthenticated, candidateProxy);
-router.use('/api/v1/interviews', authenticate, allowAuthenticated, interviewProxy);
-router.use('/api/v1/evaluations', authenticate, allowAuthenticated, evaluationProxy);
-router.use('/api/v1/feedback', authenticate, allowAuthenticated, feedbackProxy);
+router.use('/api/v1/media', authenticate, allowAuthenticated);
+router.use(mediaProxy);
+
+router.use('/api/v1/candidates', authenticate, allowAuthenticated);
+router.use(candidateProxy);
+
+router.use('/api/v1/interviews', authenticate, allowAuthenticated);
+router.use(interviewProxy);
+
+router.use('/api/v1/evaluations', authenticate, allowAuthenticated);
+router.use(evaluationProxy);
+
+router.use('/api/v1/feedback', authenticate, allowAuthenticated);
+router.use(feedbackProxy);
 
 module.exports = router;
