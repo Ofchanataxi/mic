@@ -23,7 +23,7 @@ enum MediaStatus {
 model Media {
   id               String       @id @default(uuid()) @db.Uuid
   resourceType     ResourceType
-  interviewId      String
+  interviewId      String?
   ownerId          String
   originalFilename String
   mimeType         String

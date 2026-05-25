@@ -13,6 +13,11 @@ const getInterview = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
+const listInterviews = asyncHandler(async (req, res) => {
+  const result = await interviewService.listInterviewsByUserId(req.query.userId);
+  res.status(200).json(result);
+});
+
 const startInterview = asyncHandler(async (req, res) => {
   const result = await interviewService.startInterview(req.params.id);
   res.status(200).json(result);
@@ -31,6 +36,7 @@ const getEvaluationPayload = asyncHandler(async (req, res) => {
 
 module.exports = {
   createInterview,
+  listInterviews,
   getInterview,
   startInterview,
   finishInterview,

@@ -203,6 +203,37 @@ interviewId=interview-123
 ownerId=user-123
 ```
 
+Para PDFs de CV, `interviewId` no es obligatorio:
+
+```http
+POST http://localhost:8080/api/v1/media/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file=<cv.pdf>
+resourceType=PDF
+ownerId=user-123
+```
+
+Acceso a media desde frontend:
+
+```http
+GET http://localhost:8080/api/v1/media/media-123/access
+Authorization: Bearer <token>
+```
+
+La respuesta normaliza `accessUrl` para apuntar al API Gateway, no al `media-service`.
+
+Rutas del usuario autenticado:
+
+```http
+GET http://localhost:8080/api/v1/me
+GET http://localhost:8080/api/v1/me/profile
+GET http://localhost:8080/api/v1/me/topics
+GET http://localhost:8080/api/v1/me/reports
+GET http://localhost:8080/api/v1/me/history
+```
+
 Crear perfil desde CV:
 
 ```http

@@ -18,6 +18,11 @@ const buildUser = (decoded) => {
   };
 };
 
+const allowsQueryAccessToken = (req) => {
+  const path = req.originalUrl.split('?')[0];
+  return req.method === 'GET' && /^\/api\/v1\/media\/[^/]+\/file$/.test(path);
+};
+
 const markInternalService = (req, res, next) => {
   const provided = req.header('x-internal-service-token');
   req.internalService = Boolean(env.internalServiceToken && provided && provided === env.internalServiceToken);
@@ -36,9 +41,15 @@ const authenticate = (req, res, next) => {
   if (req.internalService) return next();
 
   const header = req.header('authorization') || '';
-  const [scheme, token] = header.split(' ');
+  const [scheme, headerToken] = header.split(' ');
+  const queryToken = allowsQueryAccessToken(req) && typeof req.query.accessToken === 'string'
+    ? req.query.accessToken
+    : '';
+  const token = scheme === 'Bearer' && headerToken ? headerToken : queryToken;
   if (scheme !== 'Bearer' || !token) {
-    return sendError(res, 401, 'Authorization bearer token is required', 'AUTH_TOKEN_REQUIRED', req.requestId);
+    if (!queryToken) {
+      return sendError(res, 401, 'Authorization bearer token is required', 'AUTH_TOKEN_REQUIRED', req.requestId);
+    }
   }
 
   if (!env.jwtSecret) {

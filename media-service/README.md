@@ -127,8 +127,9 @@ Tipo: `form-data`
 
 - `file`: seleccionar PDF
 - `resourceType`: `PDF`
-- `interviewId`: `interview-123`
 - `ownerId`: `candidate-456`
+
+`interviewId` es opcional para PDFs porque el CV se sube antes de crear una entrevista.
 
 Respuesta esperada:
 

@@ -27,7 +27,7 @@ class MediaService {
       try {
         const storageKey = storageProvider.buildStorageKey({
           mediaId: media.id,
-          interviewId,
+          interviewId: interviewId || ownerId,
           resourceType,
           originalFilename: file.originalname
         });
