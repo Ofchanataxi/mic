@@ -1,0 +1,97 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ClipboardList } from 'lucide-react';
+import { candidateApi } from '../../api/candidateApi.js';
+import { interviewApi } from '../../api/interviewApi.js';
+import Alert from '../../components/ui/Alert.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Card, { CardBody, CardHeader } from '../../components/ui/Card.jsx';
+import Input from '../../components/ui/Input.jsx';
+import PageHeader from '../../components/ui/PageHeader.jsx';
+import Select from '../../components/ui/Select.jsx';
+import { getApiErrorMessage } from '../../utils/formatters.js';
+import { useAuth } from '../auth/useAuth.js';
+
+export default function NewInterviewPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR', questionCount: 8 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    candidateApi.getMyProfile()
+      .then((data) => {
+        setProfile(data);
+        setForm((current) => ({
+          ...current,
+          targetRole: data.targetRole || current.targetRole,
+          level: data.estimatedSeniority && ['JUNIOR', 'MID', 'SENIOR'].includes(data.estimatedSeniority)
+            ? data.estimatedSeniority
+            : current.level,
+        }));
+      })
+      .catch(() => setProfile(null));
+  }, []);
+
+  const updateField = (event) => {
+    const value = event.target.name === 'questionCount' ? Number(event.target.value) : event.target.value;
+    setForm((current) => ({ ...current, [event.target.name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!profile?.id) {
+      setError('Primero debes generar un perfil desde tu CV.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const result = await interviewApi.createInterview({
+        userId: user.userId || user.id,
+        candidateProfileId: profile.id,
+        targetRole: form.targetRole || undefined,
+        level: form.level,
+        questionCount: form.questionCount,
+      });
+      navigate(`/interviews/${result.interviewId}/session`);
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Entrevista"
+        title="Nueva entrevista"
+        description="Configura la entrevista. Al crearla iras a una sesion real con camara, grabacion continua y editor para preguntas de codigo."
+      />
+
+      <Card className="max-w-2xl">
+        <CardHeader title="Configuracion" description={profile ? `Perfil: ${profile.fullName || profile.id}` : 'Perfil no encontrado'} />
+        <CardBody>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error ? <Alert tone="error">{error}</Alert> : null}
+            {!profile ? <Alert tone="warning">Sube tu CV y genera un perfil antes de crear entrevistas.</Alert> : null}
+            <Input id="targetRole" name="targetRole" label="Rol objetivo" value={form.targetRole} onChange={updateField} placeholder="Backend Developer" />
+            <Select id="level" name="level" label="Nivel" value={form.level} onChange={updateField}>
+              <option value="JUNIOR">Junior</option>
+              <option value="MID">Mid</option>
+              <option value="SENIOR">Senior</option>
+            </Select>
+            <Input id="questionCount" name="questionCount" label="Cantidad de preguntas" type="number" min="5" max="12" value={form.questionCount} onChange={updateField} />
+            <Button type="submit" disabled={loading || !profile}>
+              <ClipboardList className="h-4 w-4" />
+              {loading ? 'Creando...' : 'Crear entrevista'}
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
+    </>
+  );
+}
