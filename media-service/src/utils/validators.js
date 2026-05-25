@@ -11,7 +11,7 @@ function validateUploadPayload({ file, resourceType, interviewId, ownerId }) {
     throw new ApiError(400, "resourceType must be VIDEO or PDF");
   }
 
-  if (!interviewId || !interviewId.trim()) {
+  if (resourceType === ResourceType.VIDEO && (!interviewId || !interviewId.trim())) {
     throw new ApiError(400, "interviewId is required");
   }
 

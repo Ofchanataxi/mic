@@ -60,6 +60,23 @@ function mapInterview(interview) {
   };
 }
 
+function mapInterviewSummary(interview) {
+  return {
+    interviewId: interview.id,
+    candidateProfileId: interview.candidateProfileId,
+    targetRole: interview.targetRole,
+    level: interview.level,
+    status: interview.status,
+    evaluationStatus: interview.evaluationStatus,
+    questionCount: interview.questionCount,
+    videoMediaId: interview.videoMediaId,
+    startedAt: interview.startedAt,
+    finishedAt: interview.finishedAt,
+    createdAt: interview.createdAt,
+    updatedAt: interview.updatedAt
+  };
+}
+
 function assertPlanMatchesRequest(plan, input) {
   if (!Array.isArray(plan.evaluationPlan) || plan.evaluationPlan.length === 0) {
     throw new ApiError(502, "candidate-service returned an empty evaluation plan");
@@ -120,6 +137,18 @@ async function getInterview(id) {
   }
 
   return mapInterview(interview);
+}
+
+async function listInterviewsByUserId(userId) {
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    throw new ApiError(400, "userId query parameter is required");
+  }
+
+  const interviews = await interviewRepository.listByUserId(userId.trim());
+  return {
+    userId: userId.trim(),
+    interviews: interviews.map(mapInterviewSummary)
+  };
 }
 
 async function startInterview(id) {
@@ -240,6 +269,7 @@ async function getEvaluationPayload(id) {
 module.exports = {
   createInterview,
   getInterview,
+  listInterviewsByUserId,
   startInterview,
   finishInterview,
   getEvaluationPayload

@@ -91,6 +91,27 @@ async function findById(id) {
   });
 }
 
+async function listByUserId(userId) {
+  return prisma.interview.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      candidateProfileId: true,
+      targetRole: true,
+      level: true,
+      status: true,
+      evaluationStatus: true,
+      questionCount: true,
+      videoMediaId: true,
+      startedAt: true,
+      finishedAt: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+}
+
 async function findPreviousEmbeddingsByUserId(userId) {
   return prisma.questionEmbedding.findMany({
     where: { userId },
@@ -165,6 +186,7 @@ async function updateEvaluationStatus(id, evaluationStatus) {
 module.exports = {
   createInterviewWithQuestions,
   findById,
+  listByUserId,
   findPreviousEmbeddingsByUserId,
   markStarted,
   finishInterview,

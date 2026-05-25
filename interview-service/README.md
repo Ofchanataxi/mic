@@ -196,6 +196,14 @@ GET http://localhost:3002/interviews/{interviewId}
 
 Devuelve metadata y preguntas, sin expandir el payload completo de evaluacion.
 
+### Listar entrevistas por usuario
+
+```http
+GET http://localhost:3002/interviews?userId=user-123
+```
+
+Devuelve una lista resumida para que el API Gateway pueda construir `/api/v1/me/history`.
+
 ### Consultar payload de evaluacion
 
 ```http
