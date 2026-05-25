@@ -102,6 +102,17 @@ class GcsStorageProvider {
     });
   }
 
+  async downloadFileBuffer(storageKey) {
+    const fileUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}?alt=media`;
+    const response = await fetch(fileUrl);
+
+    if (!response.ok) {
+      throw await this.buildRequestError(response, "Failed to download file");
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  }
+
   async buildRequestError(response, defaultMessage) {
     let details = "";
 

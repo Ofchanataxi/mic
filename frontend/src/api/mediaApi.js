@@ -3,7 +3,10 @@ import { httpClient } from './httpClient.js';
 export const mediaApi = {
   async uploadMedia({ file, resourceType, ownerId, interviewId, onUploadProgress }) {
     const formData = new FormData();
-    formData.append('file', file);
+    const uploadFile = resourceType === 'VIDEO' && !file.type?.startsWith('video/')
+      ? new File([file], file.name || 'interview-video.webm', { type: 'video/webm' })
+      : file;
+    formData.append('file', uploadFile, uploadFile.name || (resourceType === 'VIDEO' ? 'interview-video.webm' : 'upload.bin'));
     formData.append('resourceType', resourceType);
     formData.append('ownerId', ownerId);
     if (interviewId) formData.append('interviewId', interviewId);

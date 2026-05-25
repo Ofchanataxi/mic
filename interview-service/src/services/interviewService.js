@@ -221,7 +221,10 @@ async function finishInterview(id, input) {
 
   if (env.enableEvaluationDispatch) {
     try {
-      await evaluationClient.dispatchInterviewFinished(id);
+      await evaluationClient.dispatchInterviewFinished({
+        interviewId: id,
+        userId: finished.userId
+      });
       await interviewRepository.updateEvaluationStatus(id, "DISPATCHED");
       return {
         interviewId: finished.id,

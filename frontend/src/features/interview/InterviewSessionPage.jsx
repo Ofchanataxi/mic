@@ -25,6 +25,17 @@ function chooseMimeType() {
   return candidates.find((type) => window.MediaRecorder?.isTypeSupported(type)) || '';
 }
 
+function normalizeVideoMimeType(type) {
+  const baseType = String(type || '').split(';')[0].trim();
+  return baseType.startsWith('video/') ? baseType : 'video/webm';
+}
+
+function videoExtensionForMimeType(type) {
+  if (type === 'video/mp4') return 'mp4';
+  if (type === 'video/quicktime') return 'mov';
+  return 'webm';
+}
+
 function formatElapsed(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
@@ -295,10 +306,12 @@ export default function InterviewSessionPage() {
       await stopRecorder();
       stream?.getTracks().forEach((track) => track.stop());
 
-      const blob = new Blob(chunksRef.current, { type: recorderRef.current?.mimeType || 'video/webm' });
+      const uploadMimeType = normalizeVideoMimeType(recorderRef.current?.mimeType || chunksRef.current[0]?.type);
+      const blob = new Blob(chunksRef.current, { type: uploadMimeType });
       if (!blob.size) throw new Error('La grabacion no produjo video.');
 
-      const file = new File([blob], `interview-${id}.webm`, { type: blob.type });
+      const extension = videoExtensionForMimeType(uploadMimeType);
+      const file = new File([blob], `interview-${id}.${extension}`, { type: uploadMimeType });
       finalVideoFileRef.current = file;
       finalResponsesRef.current = finalResponses;
       await submitFinalPayload({ videoFile: file, finalResponses });

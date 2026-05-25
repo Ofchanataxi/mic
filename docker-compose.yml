@@ -179,7 +179,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_service?schema=interview
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       EVALUATION_SERVICE_URL: http://evaluation-service:3003
-      ENABLE_EVALUATION_DISPATCH: ${ENABLE_EVALUATION_DISPATCH:-false}
+      ENABLE_EVALUATION_DISPATCH: ${ENABLE_EVALUATION_DISPATCH:-true}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_QUESTION_MODEL: ${OPENAI_QUESTION_MODEL:-gpt-4o-mini}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}

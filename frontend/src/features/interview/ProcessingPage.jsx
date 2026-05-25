@@ -14,6 +14,10 @@ import { getApiErrorMessage } from '../../utils/formatters.js';
 const POLLING_MS = 5000;
 const failedStatuses = new Set(['FAILED', 'DISPATCH_FAILED', 'CANCELLED']);
 
+function isNotFoundError(error) {
+  return error?.response?.status === 404;
+}
+
 export default function ProcessingPage() {
   const { id } = useParams();
   const [evaluationStatus, setEvaluationStatus] = useState(null);
@@ -43,15 +47,21 @@ export default function ProcessingPage() {
     }
     if (feedbackResult.status === 'fulfilled') {
       setFeedbackStatus(feedbackResult.value);
+    } else if (isNotFoundError(feedbackResult.reason)) {
+      setFeedbackStatus({ interviewId: id, status: 'WAITING' });
     }
 
-    const failures = [evaluationResult, feedbackResult].filter((result) => result.status === 'rejected');
+    const failures = [evaluationResult, feedbackResult]
+      .filter((result) => result.status === 'rejected')
+      .filter((result) => !isNotFoundError(result.reason));
     if (failures.length === 2) {
       setError(getApiErrorMessage(failures[0].reason));
     } else {
       setPartialErrors({
         evaluation: evaluationResult.status === 'rejected' ? getApiErrorMessage(evaluationResult.reason) : '',
-        feedback: feedbackResult.status === 'rejected' ? getApiErrorMessage(feedbackResult.reason) : '',
+        feedback: feedbackResult.status === 'rejected' && !isNotFoundError(feedbackResult.reason)
+          ? getApiErrorMessage(feedbackResult.reason)
+          : '',
       });
     }
 

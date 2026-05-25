@@ -40,11 +40,14 @@ class VideoProcessingService {
         contentType: "video/mp4"
       });
 
+      const outputStats = await require("fs").promises.stat(outputPath);
+
       await mediaRepository.updateById(mediaId, {
         status: MediaStatus.READY,
         storageKey,
         bucketName: storageProvider.getBucketName(),
         mimeType: "video/mp4",
+        sizeBytes: BigInt(outputStats.size),
         durationMs,
         errorMessage: null
       });

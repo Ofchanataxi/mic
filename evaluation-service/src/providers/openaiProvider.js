@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const OpenAI = require('openai');
 const env = require('../config/env');
 
@@ -20,6 +21,7 @@ const transcribeAudio = async (audioPath) => {
     file: fs.createReadStream(audioPath),
     model: env.openaiTranscriptionModel,
     language: 'es',
+    prompt: 'Transcribe solo voz real de una entrevista tecnica en español. Si no hay voz clara, no inventes frases de cierre, subtitulos ni agradecimientos.',
   });
   return transcription.text || '';
 };
@@ -35,7 +37,40 @@ const createJsonEvaluation = async (messages) => {
   return completion.choices?.[0]?.message?.content || '{}';
 };
 
+const createJsonVisionEvaluation = async ({ systemPrompt, userPrompt, imagePaths }) => {
+  const openai = getOpenAIClient();
+  const imageContent = await Promise.all((imagePaths || []).map(async (imagePath) => {
+    const bytes = await fsPromises.readFile(imagePath);
+    return {
+      type: 'image_url',
+      image_url: {
+        url: `data:image/jpeg;base64,${bytes.toString('base64')}`,
+        detail: 'low',
+      },
+    };
+  }));
+
+  const completion = await openai.chat.completions.create({
+    model: env.openaiModel,
+    temperature: 0.1,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: userPrompt },
+          ...imageContent,
+        ],
+      },
+    ],
+  });
+
+  return completion.choices?.[0]?.message?.content || '{}';
+};
+
 module.exports = {
   transcribeAudio,
   createJsonEvaluation,
+  createJsonVisionEvaluation,
 };
