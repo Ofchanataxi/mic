@@ -90,6 +90,46 @@ function assertPlanMatchesRequest(plan, input) {
   }
 }
 
+function requiredCodingQuestions(questionCount) {
+  if (questionCount >= 9) {
+    return env.minCodingQuestionsLargeInterview;
+  }
+  if (questionCount >= 5) {
+    return env.minCodingQuestionsSmallInterview;
+  }
+  return 0;
+}
+
+function applyCodingQuestionQuota(evaluationPlan, questionCount) {
+  const plan = evaluationPlan.slice(0, questionCount).map((item) => ({ ...item }));
+  const requiredCount = Math.min(
+    requiredCodingQuestions(questionCount),
+    plan.filter((item) => item.skillType !== "SOFT").length
+  );
+
+  if (requiredCount <= 0) {
+    return plan;
+  }
+
+  const alreadyCoding = plan.filter((item) => item.forcedQuestionType === "CODING").length;
+  let remaining = requiredCount - alreadyCoding;
+
+  for (let index = plan.length - 1; index >= 0 && remaining > 0; index -= 1) {
+    if (plan[index].skillType === "SOFT" || plan[index].forcedQuestionType === "CODING") {
+      continue;
+    }
+
+    plan[index] = {
+      ...plan[index],
+      forcedQuestionType: "CODING",
+      reason: `${plan[index].reason || "Coverage balance"} / coding quota`
+    };
+    remaining -= 1;
+  }
+
+  return plan;
+}
+
 async function createInterview(input) {
   const adaptiveStrategy = await candidateClient.getAdaptiveStrategy({
     userId: input.userId,
@@ -100,7 +140,7 @@ async function createInterview(input) {
 
   assertPlanMatchesRequest(adaptiveStrategy, input);
 
-  const evaluationPlan = adaptiveStrategy.evaluationPlan.slice(0, input.questionCount);
+  const evaluationPlan = applyCodingQuestionQuota(adaptiveStrategy.evaluationPlan, input.questionCount);
   const questions = await questionGenerationService.generateQuestionsForPlan({
     userId: input.userId,
     targetRole: input.targetRole || adaptiveStrategy.targetRole,

@@ -40,6 +40,24 @@ const scoreJudge0Result = ({ result, expectedOutput }) => {
   };
 };
 
+const judge0FailureResult = (error) => ({
+  codeScore: 30,
+  passedTests: 0,
+  totalTests: 1,
+  compilationStatus: 'JUDGE0_REQUEST_FAILED',
+  runtimeError: error.response?.data
+    ? JSON.stringify(error.response.data).slice(0, 1000)
+    : error.message,
+  simulated: false,
+  rawData: {
+    simulated: false,
+    status: 'JUDGE0_REQUEST_FAILED',
+    httpStatus: error.response?.status || null,
+    details: error.response?.data || null,
+    notes: 'Judge0 failed to execute the submission. The CODE question is kept evaluable using semantic/code explanation signals.',
+  },
+});
+
 const evaluateCode = async ({ skillType, codeSubmission }) => {
   if (skillType !== 'CODE') return null;
 
@@ -60,15 +78,32 @@ const evaluateCode = async ({ skillType, codeSubmission }) => {
   }
 
   if (!judge0Client.isConfigured()) {
-    throw new Error('JUDGE0_API_KEY is required to evaluate CODE questions');
+    return {
+      codeScore: null,
+      passedTests: 0,
+      totalTests: 0,
+      compilationStatus: 'JUDGE0_NOT_CONFIGURED',
+      runtimeError: null,
+      simulated: false,
+      rawData: {
+        simulated: false,
+        status: 'JUDGE0_NOT_CONFIGURED',
+        notes: 'JUDGE0_API_KEY is required to execute CODE questions.',
+      },
+    };
   }
 
-  const result = await judge0Client.submitCode({
-    language: codeSubmission.language,
-    sourceCode: codeSubmission.sourceCode,
-    stdin: codeSubmission.stdin,
-    expectedOutput: codeSubmission.expectedOutput,
-  });
+  let result;
+  try {
+    result = await judge0Client.submitCode({
+      language: codeSubmission.language,
+      sourceCode: codeSubmission.sourceCode,
+      stdin: codeSubmission.stdin,
+      expectedOutput: codeSubmission.expectedOutput,
+    });
+  } catch (error) {
+    return judge0FailureResult(error);
+  }
 
   return scoreJudge0Result({
     result,

@@ -13,6 +13,8 @@ import { getApiErrorMessage } from '../../utils/formatters.js';
 
 const POLLING_MS = 5000;
 const failedStatuses = new Set(['FAILED', 'DISPATCH_FAILED', 'CANCELLED']);
+const evaluationDoneStatuses = new Set(['COMPLETED', 'PARTIAL']);
+const waitingStatus = (interviewId) => ({ interviewId, status: 'WAITING' });
 
 function isNotFoundError(error) {
   return error?.response?.status === 404;
@@ -28,38 +30,56 @@ export default function ProcessingPage() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
   const feedbackReady = feedbackStatus?.status === 'READY';
-  const shouldStopPolling = useMemo(() => (
-    feedbackReady
-    || failedStatuses.has(evaluationStatus?.status)
-    || failedStatuses.has(feedbackStatus?.status)
-  ), [evaluationStatus?.status, feedbackReady, feedbackStatus?.status]);
+  const shouldStopPolling = useMemo(() => feedbackReady, [feedbackReady]);
 
   const loadStatuses = useCallback(async () => {
     setError('');
     setPartialErrors({});
-    const [evaluationResult, feedbackResult] = await Promise.allSettled([
-      evaluationApi.getEvaluationJobStatus(id),
-      feedbackApi.getFeedbackJobStatus(id),
-    ]);
+    const evaluationResult = await Promise.resolve()
+      .then(() => evaluationApi.getEvaluationJobStatus(id))
+      .then((value) => ({ status: 'fulfilled', value }))
+      .catch((reason) => ({ status: 'rejected', reason }));
+
+    let nextEvaluationStatus = evaluationStatus;
 
     if (evaluationResult.status === 'fulfilled') {
-      setEvaluationStatus(evaluationResult.value);
+      nextEvaluationStatus = evaluationResult.value;
+      setEvaluationStatus(nextEvaluationStatus);
+    } else if (isNotFoundError(evaluationResult.reason)) {
+      nextEvaluationStatus = waitingStatus(id);
+      setEvaluationStatus(nextEvaluationStatus);
     }
-    if (feedbackResult.status === 'fulfilled') {
-      setFeedbackStatus(feedbackResult.value);
-    } else if (isNotFoundError(feedbackResult.reason)) {
-      setFeedbackStatus({ interviewId: id, status: 'WAITING' });
+
+    const shouldCheckFeedback = evaluationDoneStatuses.has(nextEvaluationStatus?.status);
+    let feedbackResult = null;
+
+    if (shouldCheckFeedback) {
+      feedbackResult = await Promise.resolve()
+        .then(() => feedbackApi.getFeedbackJobStatus(id))
+        .then((value) => ({ status: 'fulfilled', value }))
+        .catch((reason) => ({ status: 'rejected', reason }));
+
+      if (feedbackResult.status === 'fulfilled') {
+        setFeedbackStatus(feedbackResult.value);
+      } else if (isNotFoundError(feedbackResult.reason)) {
+        setFeedbackStatus(waitingStatus(id));
+      }
+    } else {
+      setFeedbackStatus(waitingStatus(id));
     }
 
     const failures = [evaluationResult, feedbackResult]
+      .filter(Boolean)
       .filter((result) => result.status === 'rejected')
       .filter((result) => !isNotFoundError(result.reason));
-    if (failures.length === 2) {
+    if (failures.length && evaluationResult.status === 'rejected' && feedbackResult?.status === 'rejected') {
       setError(getApiErrorMessage(failures[0].reason));
     } else {
       setPartialErrors({
-        evaluation: evaluationResult.status === 'rejected' ? getApiErrorMessage(evaluationResult.reason) : '',
-        feedback: feedbackResult.status === 'rejected' && !isNotFoundError(feedbackResult.reason)
+        evaluation: evaluationResult.status === 'rejected' && !isNotFoundError(evaluationResult.reason)
+          ? getApiErrorMessage(evaluationResult.reason)
+          : '',
+        feedback: feedbackResult?.status === 'rejected' && !isNotFoundError(feedbackResult.reason)
           ? getApiErrorMessage(feedbackResult.reason)
           : '',
       });
@@ -117,6 +137,11 @@ export default function ProcessingPage() {
                 <span className="text-sm font-medium text-slate-700">Feedback</span>
                 <StatusBadge status={feedbackStatus?.status} fallback="WAITING" />
               </div>
+              {failedStatuses.has(evaluationStatus?.status) || failedStatuses.has(feedbackStatus?.status) ? (
+                <Alert tone="warning">
+                  Si el backend esta reintentando el procesamiento, este estado puede corregirse en la siguiente consulta.
+                </Alert>
+              ) : null}
               {evaluationStatus?.errorMessage ? <Alert tone="error">{evaluationStatus.errorMessage}</Alert> : null}
               {feedbackStatus?.errorMessage ? <Alert tone="error">{feedbackStatus.errorMessage}</Alert> : null}
               {!feedbackReady ? (

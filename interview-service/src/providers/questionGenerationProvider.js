@@ -3,6 +3,10 @@ const { ApiError } = require("../utils/apiError");
 const { createOpenAiClient } = require("./openaiClient");
 
 function chooseQuestionType(planItem, attemptNumber) {
+  if (planItem.forcedQuestionType) {
+    return planItem.forcedQuestionType;
+  }
+
   if (planItem.skillType === "SOFT") {
     return "SOFT_SKILL";
   }
@@ -45,7 +49,8 @@ async function generateQuestion({ planItem, targetRole, level, attemptNumber }) 
       "Focus exactly on topic/subtopic.",
       "Respect expectedLevel.",
       "Do not mix multiple subtopics.",
-      "For CODING, ask for solving or explaining a solution with code, but do not include starter code or expected output.",
+      "For CODING, the prompt must explicitly ask the candidate to write code or implement a function/algorithm.",
+      "For CODING, include the preferred programming language when it is natural for the topic, but do not include starter code or expected output.",
       "Use Spanish unless the topic requires English terminology."
     ]
   };
@@ -73,6 +78,10 @@ async function generateQuestion({ planItem, targetRole, level, attemptNumber }) 
 
   if (!["TECHNICAL", "SOFT_SKILL", "CODING"].includes(parsed.questionType)) {
     throw new ApiError(502, "OpenAI returned an invalid questionType", parsed);
+  }
+
+  if (preferredQuestionType === "CODING") {
+    parsed.questionType = "CODING";
   }
 
   if (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "") {

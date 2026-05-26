@@ -144,11 +144,13 @@ class MediaService {
       `inline; filename="${path.basename(media.storageKey)}"`
     );
 
-    if (range && typeof storageProvider.downloadFileBuffer === "function") {
+    if (typeof storageProvider.downloadFileBuffer === "function") {
+      const buffer = await storageProvider.downloadFileBuffer(media.storageKey);
+      const totalSize = buffer.length;
+
+      if (range) {
       const match = range.match(/bytes=(\d*)-(\d*)/);
       if (match) {
-        const buffer = await storageProvider.downloadFileBuffer(media.storageKey);
-        const totalSize = buffer.length;
         const start = match[1] ? Number(match[1]) : 0;
         const end = match[2] ? Number(match[2]) : totalSize - 1;
 
@@ -160,6 +162,11 @@ class MediaService {
           return;
         }
       }
+      }
+
+      res.setHeader("Content-Length", totalSize);
+      res.end(buffer);
+      return;
     }
 
     if (size > 0) {

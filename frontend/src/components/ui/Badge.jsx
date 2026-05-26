@@ -9,7 +9,7 @@ const tones = {
 export function statusTone(status) {
   if (!status) return 'default';
   if (['READY', 'FINISHED', 'COMPLETED', 'DISPATCHED'].includes(status)) return 'success';
-  if (['CREATED', 'IN_PROGRESS', 'PROCESSING', 'GENERATING', 'PENDING'].includes(status)) return 'warning';
+  if (['CREATED', 'IN_PROGRESS', 'PROCESSING', 'GENERATING', 'PENDING', 'WAITING'].includes(status)) return 'warning';
   if (['FAILED', 'DISPATCH_FAILED', 'CANCELLED'].includes(status)) return 'danger';
   return 'info';
 }

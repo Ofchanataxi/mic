@@ -4,19 +4,133 @@ import RecommendationList from './RecommendationList.jsx';
 import ScoreBar from './ScoreBar.jsx';
 import StatusBadge from './StatusBadge.jsx';
 
-function JsonBlock({ title, value }) {
-  if (!value) return null;
-  const content = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+const asArray = (value) => {
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : [value];
+};
+
+const formatPercent = (value) => (Number.isFinite(Number(value)) ? `${Math.round(Number(value))}/100` : null);
+
+const formatSpeechRate = (value) => (Number.isFinite(Number(value)) ? `${Math.round(Number(value))} palabras/min` : null);
+
+function ReadableAnalysisCard({ title, summary, items = [] }) {
+  const visibleItems = items.filter(Boolean);
+  if (!summary && !visibleItems.length) return null;
+
   return (
-    <div>
+    <div className="rounded-md border border-slate-100 bg-slate-50 p-4">
       <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
-      <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-slate-950 p-3 text-xs leading-5 text-slate-100">{content}</pre>
+      {summary ? <p className="mt-2 text-sm leading-6 text-slate-700">{summary}</p> : null}
+      {visibleItems.length ? (
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+          {visibleItems.map((item) => <li key={item}>- {item}</li>)}
+        </ul>
+      ) : null}
     </div>
   );
 }
 
+function buildSemanticAnalysis(question) {
+  const semantic = question.semanticEvaluation;
+  if (!semantic) return null;
+  const summary = typeof semantic === 'string'
+    ? semantic
+    : semantic.justification || 'La evaluacion semantica revisa claridad, coherencia, profundidad y relevancia de la respuesta.';
+
+  return {
+    title: 'Comentario semantico',
+    summary,
+    items: [
+      formatPercent(semantic.overallSemanticScore || question.scores?.semantic) && `Resultado semantico: ${formatPercent(semantic.overallSemanticScore || question.scores?.semantic)}`,
+      formatPercent(semantic.technicalAccuracyScore) && `Precision tecnica: ${formatPercent(semantic.technicalAccuracyScore)}`,
+      formatPercent(semantic.clarityScore) && `Claridad: ${formatPercent(semantic.clarityScore)}`,
+      formatPercent(semantic.depthScore) && `Profundidad: ${formatPercent(semantic.depthScore)}`,
+    ],
+  };
+}
+
+function buildAudioAnalysis(question) {
+  const audio = question.audioAnalysis;
+  if (!audio) return null;
+  const indicators = audio.confidenceIndicators || {};
+  const summary = [
+    indicators.responseLength,
+    indicators.speechRate,
+  ].filter(Boolean).join('. ') || 'El audio se reviso con una heuristica basada en duracion y transcripcion.';
+
+  return {
+    title: 'Comentario de audio',
+    summary,
+    items: [
+      Number.isFinite(Number(audio.wordCount)) && `${audio.wordCount} palabras detectadas en la transcripcion.`,
+      formatSpeechRate(audio.speechRate) && `Ritmo aproximado: ${formatSpeechRate(audio.speechRate)}.`,
+      formatPercent(audio.fluencyScore || question.scores?.audio) && `Fluidez estimada: ${formatPercent(audio.fluencyScore || question.scores?.audio)}.`,
+      indicators.pauseEstimation,
+    ],
+  };
+}
+
+function buildVideoAnalysis(question) {
+  const video = question.videoAnalysis;
+  if (!video) return null;
+  const behavior = video.observableBehavior || {};
+  const raw = video.rawData || {};
+  const unavailable = ['VIDEO_MODEL_NOT_CONFIGURED', 'VIDEO_SEGMENT_UNAVAILABLE'].includes(raw.status);
+  const summary = unavailable
+    ? 'El analisis visual automatico no tuvo suficiente configuracion o segmento disponible para emitir una conclusion confiable.'
+    : 'El analisis visual se baso en senales observables del segmento de respuesta, sin inferir condiciones personales.';
+
+  return {
+    title: 'Comentario de video',
+    summary,
+    items: [
+      behavior.visiblePerson === true && 'La persona aparece visible en los frames analizados.',
+      behavior.visiblePerson === false && 'No se pudo confirmar una persona visible en el segmento.',
+      behavior.framing && `Encuadre: ${behavior.framing}.`,
+      behavior.gazeObservation && `Mirada/orientacion: ${behavior.gazeObservation}.`,
+      behavior.postureObservation && `Postura observable: ${behavior.postureObservation}.`,
+      behavior.attentionObservation && `Atencion observable: ${behavior.attentionObservation}.`,
+      ...asArray(behavior.limitations).map((item) => `Limitacion: ${item}.`),
+      formatPercent(video.eyeContactScore) && `Contacto visual estimado: ${formatPercent(video.eyeContactScore)}.`,
+      formatPercent(video.postureScore) && `Postura estimada: ${formatPercent(video.postureScore)}.`,
+      formatPercent(video.attentionScore) && `Atencion estimada: ${formatPercent(video.attentionScore)}.`,
+    ],
+  };
+}
+
+function buildCodeAnalysis(question) {
+  const code = question.codeEvaluation;
+  if (!code) return null;
+  const status = code.compilationStatus || code.rawData?.status;
+  const summary = status === 'NO_CODE_SUBMISSION'
+    ? 'No se recibio una solucion de codigo para esta pregunta.'
+    : status === 'JUDGE0_NOT_CONFIGURED'
+      ? 'La ejecucion automatica de codigo no estuvo configurada al momento de evaluar.'
+      : status === 'JUDGE0_REQUEST_FAILED'
+        ? 'No se pudo ejecutar el codigo en Judge0, pero la pregunta se mantuvo evaluable con el resto de senales disponibles.'
+        : 'La solucion de codigo fue ejecutada con Judge0 y se uso el resultado para calcular el score.';
+
+  return {
+    title: 'Comentario de codigo',
+    summary,
+    items: [
+      status && `Estado de ejecucion: ${status}.`,
+      Number.isFinite(Number(code.passedTests)) && Number.isFinite(Number(code.totalTests)) && `${code.passedTests}/${code.totalTests} pruebas superadas.`,
+      formatPercent(code.executionScore || question.scores?.code) && `Resultado de codigo: ${formatPercent(code.executionScore || question.scores?.code)}.`,
+      code.runtimeError && `Observacion tecnica: ${String(code.runtimeError).slice(0, 220)}.`,
+    ],
+  };
+}
+
 export default function QuestionFeedbackDetail({ question }) {
   if (!question) return null;
+  const readableAnalyses = [
+    buildSemanticAnalysis(question),
+    buildAudioAnalysis(question),
+    buildVideoAnalysis(question),
+    buildCodeAnalysis(question),
+  ].filter(Boolean);
+
   return (
     <Card>
       <CardHeader
@@ -51,12 +165,18 @@ export default function QuestionFeedbackDetail({ question }) {
           <RecommendationList title="Debilidades" items={question.weaknesses} />
           <RecommendationList title="Recomendaciones" items={question.recommendations} />
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <JsonBlock title="Analisis semantico" value={question.semanticEvaluation} />
-          <JsonBlock title="Analisis audio" value={question.audioAnalysis} />
-          <JsonBlock title="Analisis video" value={question.videoAnalysis} />
-          <JsonBlock title="Analisis codigo" value={question.codeEvaluation} />
-        </div>
+        {readableAnalyses.length ? (
+          <section className="grid gap-4 lg:grid-cols-2">
+            {readableAnalyses.map((analysis) => (
+              <ReadableAnalysisCard
+                key={analysis.title}
+                title={analysis.title}
+                summary={analysis.summary}
+                items={analysis.items}
+              />
+            ))}
+          </section>
+        ) : null}
       </CardBody>
     </Card>
   );

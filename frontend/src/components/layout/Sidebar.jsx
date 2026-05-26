@@ -1,4 +1,4 @@
-import { ClipboardList, FileText, History, LayoutDashboard, MessageSquareText, UserRound } from 'lucide-react';
+import { ClipboardList, FileText, History, LayoutDashboard, UserRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
@@ -7,7 +7,6 @@ const navItems = [
   { to: '/profile', label: 'Perfil', icon: UserRound },
   { to: '/interviews/new', label: 'Entrevista', icon: ClipboardList },
   { to: '/history', label: 'Historial', icon: History },
-  { to: '/dashboard#feedback', label: 'Feedback', icon: MessageSquareText },
 ];
 
 export default function Sidebar() {
