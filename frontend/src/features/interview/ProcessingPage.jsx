@@ -9,7 +9,7 @@ import LoadingState from '../../components/ui/LoadingState.jsx';
 import PageHeader from '../../components/ui/PageHeader.jsx';
 import ProcessingTimeline from '../../components/ui/ProcessingTimeline.jsx';
 import StatusBadge from '../../components/ui/StatusBadge.jsx';
-import { getApiErrorMessage } from '../../utils/formatters.js';
+import { formatDate, getApiErrorMessage } from '../../utils/formatters.js';
 
 const POLLING_MS = 5000;
 const failedStatuses = new Set(['FAILED', 'DISPATCH_FAILED', 'CANCELLED']);
@@ -18,6 +18,11 @@ const waitingStatus = (interviewId) => ({ interviewId, status: 'WAITING' });
 
 function isNotFoundError(error) {
   return error?.response?.status === 404;
+}
+
+function isTransientMediaProcessingStatus(status) {
+  return status?.status === 'FAILED'
+    && /media.*READY|not READY|Current status:\s*PROCESSING|status:\s*PROCESSING/i.test(status.errorMessage || '');
 }
 
 export default function ProcessingPage() {
@@ -31,6 +36,9 @@ export default function ProcessingPage() {
 
   const feedbackReady = feedbackStatus?.status === 'READY';
   const shouldStopPolling = useMemo(() => feedbackReady, [feedbackReady]);
+  const displayEvaluationStatus = isTransientMediaProcessingStatus(evaluationStatus)
+    ? { ...evaluationStatus, status: 'PROCESSING', errorMessage: null }
+    : evaluationStatus;
 
   const loadStatuses = useCallback(async () => {
     setError('');
@@ -102,50 +110,53 @@ export default function ProcessingPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Procesamiento"
+        eyebrow="Análisis"
         title="Analizando entrevista"
-        description="Estamos analizando tu entrevista. Esto puede tardar unos minutos mientras se procesa contenido, audio, video, codigo y feedback."
+        description="Estamos analizando tu entrevista. Esto puede tardar unos minutos mientras preparamos tu reporte."
         action={feedbackReady ? (
           <Link to={`/interviews/${id}/feedback`}>
-            <Button>Ver feedback</Button>
+            <Button>Ver reporte</Button>
           </Link>
         ) : null}
       />
 
-      {loading ? <LoadingState label="Consultando procesamiento" /> : null}
+      {loading ? <LoadingState label="Consultando análisis" /> : null}
       {error ? <div className="mb-5"><Alert tone="error">{error}</Alert></div> : null}
-      {partialErrors.evaluation ? <div className="mb-5"><Alert tone="warning" title="No se pudo consultar evaluacion">{partialErrors.evaluation}</Alert></div> : null}
-      {partialErrors.feedback ? <div className="mb-5"><Alert tone="warning" title="No se pudo consultar feedback">{partialErrors.feedback}</Alert></div> : null}
+      {partialErrors.evaluation ? <div className="mb-5"><Alert tone="warning" title="No se pudo actualizar el estado">{partialErrors.evaluation}</Alert></div> : null}
+      {partialErrors.feedback ? <div className="mb-5"><Alert tone="warning" title="No se pudo actualizar el reporte">{partialErrors.feedback}</Alert></div> : null}
 
       {!loading ? (
         <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
           <Card>
-            <CardHeader title="Etapas" description={lastUpdatedAt ? `Ultima consulta: ${lastUpdatedAt.toLocaleTimeString()}` : 'Polling activo cada 5 segundos'} />
+            <CardHeader title="Etapas" description={lastUpdatedAt ? `Última actualización: ${lastUpdatedAt.toLocaleTimeString()}` : 'Actualizando estado'} />
             <CardBody>
-              <ProcessingTimeline evaluationStatus={evaluationStatus?.status} feedbackStatus={feedbackStatus?.status} />
+              <ProcessingTimeline evaluationStatus={displayEvaluationStatus?.status} feedbackStatus={feedbackStatus?.status} />
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title={`Entrevista ${id}`} description="Estado actual reportado por backend." />
+            <CardHeader
+              title={displayEvaluationStatus?.startedAt ? `Entrevista del ${formatDate(displayEvaluationStatus.startedAt)}` : 'Entrevista en análisis'}
+              description="Puedes salir de esta pantalla y volver cuando quieras."
+            />
             <CardBody className="space-y-4">
               <div className="flex items-center justify-between rounded-md border border-slate-100 p-3">
-                <span className="text-sm font-medium text-slate-700">Evaluacion</span>
-                <StatusBadge status={evaluationStatus?.status} />
+                <span className="text-sm font-medium text-slate-700">Evaluación</span>
+                <StatusBadge status={displayEvaluationStatus?.status} />
               </div>
               <div className="flex items-center justify-between rounded-md border border-slate-100 p-3">
-                <span className="text-sm font-medium text-slate-700">Feedback</span>
+                <span className="text-sm font-medium text-slate-700">Reporte</span>
                 <StatusBadge status={feedbackStatus?.status} fallback="WAITING" />
               </div>
-              {failedStatuses.has(evaluationStatus?.status) || failedStatuses.has(feedbackStatus?.status) ? (
+              {failedStatuses.has(displayEvaluationStatus?.status) || failedStatuses.has(feedbackStatus?.status) ? (
                 <Alert tone="warning">
-                  Si el backend esta reintentando el procesamiento, este estado puede corregirse en la siguiente consulta.
+                  Estamos intentando completar el análisis. Si el problema continúa, vuelve a intentarlo más tarde.
                 </Alert>
               ) : null}
-              {evaluationStatus?.errorMessage ? <Alert tone="error">{evaluationStatus.errorMessage}</Alert> : null}
+              {displayEvaluationStatus?.errorMessage ? <Alert tone="error">{displayEvaluationStatus.errorMessage}</Alert> : null}
               {feedbackStatus?.errorMessage ? <Alert tone="error">{feedbackStatus.errorMessage}</Alert> : null}
               {!feedbackReady ? (
-                <Button variant="secondary" onClick={loadStatuses}>Reintentar consulta</Button>
+                <Button variant="secondary" onClick={loadStatuses}>Actualizar estado</Button>
               ) : (
                 <Link to={`/interviews/${id}/feedback`}>
                   <Button className="w-full">Abrir reporte</Button>

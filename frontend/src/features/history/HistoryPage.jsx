@@ -37,7 +37,7 @@ export default function HistoryPage() {
       <PageHeader
         eyebrow="Historial"
         title="Entrevistas"
-        description="Consulta entrevistas terminadas, estado de procesamiento, feedback disponible y score global cuando exista."
+        description="Consulta tus entrevistas, su avance y el resultado global cuando esté disponible."
         action={<Button variant="secondary" onClick={loadHistory}>Actualizar</Button>}
       />
 

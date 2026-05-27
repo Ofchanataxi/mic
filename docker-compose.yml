@@ -220,6 +220,8 @@ services:
       REDIS_URL: redis://redis:6379
       EVALUATION_QUEUE_NAME: evaluation-jobs
       MAX_EVALUATION_ATTEMPTS: 3
+      MEDIA_READY_WAIT_MS: ${MEDIA_READY_WAIT_MS:-180000}
+      MEDIA_READY_POLL_MS: ${MEDIA_READY_POLL_MS:-3000}
       INTERVIEW_SERVICE_URL: http://interview-service:3002
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
@@ -227,6 +229,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-90000}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-1}
       JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
       JUDGE0_API_URL: ${JUDGE0_API_URL:-https://judge0-ce.p.rapidapi.com}
       JUDGE0_API_HOST: ${JUDGE0_API_HOST:-judge0-ce.p.rapidapi.com}
@@ -271,6 +275,8 @@ services:
       REDIS_URL: redis://redis:6379
       EVALUATION_QUEUE_NAME: evaluation-jobs
       MAX_EVALUATION_ATTEMPTS: 3
+      MEDIA_READY_WAIT_MS: ${MEDIA_READY_WAIT_MS:-180000}
+      MEDIA_READY_POLL_MS: ${MEDIA_READY_POLL_MS:-3000}
       INTERVIEW_SERVICE_URL: http://interview-service:3002
       MEDIA_SERVICE_URL: http://media-service:3000
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
@@ -278,6 +284,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TRANSCRIPTION_MODEL: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-1}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-90000}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-1}
       JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
       JUDGE0_API_URL: ${JUDGE0_API_URL:-https://judge0-ce.p.rapidapi.com}
       JUDGE0_API_HOST: ${JUDGE0_API_HOST:-judge0-ce.p.rapidapi.com}
@@ -320,6 +328,8 @@ services:
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-90000}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-1}
       ALLOW_READY_REPORT_REGENERATION: "false"
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     ports:
@@ -351,6 +361,8 @@ services:
       CANDIDATE_SERVICE_URL: http://candidate-service:3001
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-90000}
+      OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-1}
       ALLOW_READY_REPORT_REGENERATION: "false"
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     volumes:

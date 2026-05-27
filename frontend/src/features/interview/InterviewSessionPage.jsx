@@ -18,7 +18,7 @@ import UploadProgress from '../../components/ui/UploadProgress.jsx';
 import { getApiErrorMessage } from '../../utils/formatters.js';
 import { useAuth } from '../auth/useAuth.js';
 
-const uploadSteps = ['Cerrar respuesta actual', 'Detener grabacion', 'Subir video', 'Finalizar entrevista'];
+const uploadSteps = ['Cerrar respuesta actual', 'Detener grabación', 'Guardar entrevista', 'Finalizar'];
 
 function chooseMimeType() {
   const candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -174,7 +174,7 @@ export default function InterviewSessionPage() {
       mediaStream?.getTracks().forEach((track) => track.stop());
       setStream(null);
       setCameraError(apiError.name === 'NotAllowedError'
-        ? 'Permiso de camara o microfono denegado.'
+        ? 'Permiso de cámara o micrófono denegado.'
         : getApiErrorMessage(apiError));
       setPhase('instructions');
     }
@@ -258,7 +258,7 @@ export default function InterviewSessionPage() {
       return;
     }
     recorder.onstop = resolve;
-    recorder.onerror = () => reject(new Error('No se pudo detener la grabacion'));
+    recorder.onerror = () => reject(new Error('No se pudo detener la grabación'));
     recorder.stop();
   });
 
@@ -308,7 +308,7 @@ export default function InterviewSessionPage() {
 
       const uploadMimeType = normalizeVideoMimeType(recorderRef.current?.mimeType || chunksRef.current[0]?.type);
       const blob = new Blob(chunksRef.current, { type: uploadMimeType });
-      if (!blob.size) throw new Error('La grabacion no produjo video.');
+      if (!blob.size) throw new Error('La grabación no produjo video.');
 
       const extension = videoExtensionForMimeType(uploadMimeType);
       const file = new File([blob], `interview-${id}.${extension}`, { type: uploadMimeType });
@@ -347,9 +347,9 @@ export default function InterviewSessionPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Sesion"
-        title="Entrevista tecnica"
-        description="Responde una pregunta a la vez. La camara y el microfono se graban de forma continua hasta finalizar."
+        eyebrow="Sesión"
+        title="Entrevista técnica"
+        description="Responde una pregunta a la vez. La cámara y el micrófono se graban de forma continua hasta finalizar."
         action={<RecordingIndicator active={phase === 'recording' || phase === 'finishing'} elapsedLabel={formatElapsed(elapsedMs)} />}
       />
 
@@ -392,11 +392,11 @@ export default function InterviewSessionPage() {
           <aside className="space-y-4">
             <CameraPreview stream={stream} />
             <Card>
-              <CardHeader title="Grabacion activa" description="No cierres ni recargues esta pestana." />
+              <CardHeader title="Grabación activa" description="No cierres ni recargues esta pestaña." />
               <CardBody className="space-y-3 text-sm text-slate-600">
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Video continuo</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Timestamps por pregunta</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Subida al finalizar</div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Preguntas registradas</div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Reporte al finalizar</div>
               </CardBody>
             </Card>
           </aside>
@@ -405,7 +405,7 @@ export default function InterviewSessionPage() {
 
       {phase === 'finishing' ? (
         <Card className="max-w-2xl">
-          <CardHeader title="Finalizando entrevista" description={uploadPercent ? `Subiendo video: ${uploadPercent}%` : 'Preparando video y respuestas.'} />
+          <CardHeader title="Finalizando entrevista" description={uploadPercent ? `Guardando entrevista: ${uploadPercent}%` : 'Preparando tus respuestas.'} />
           <CardBody>
             <UploadProgress steps={uploadSteps} activeStep={uploadStep} />
           </CardBody>
@@ -414,7 +414,7 @@ export default function InterviewSessionPage() {
 
       {phase === 'finish-error' ? (
         <Card className="max-w-2xl">
-          <CardHeader title="No se pudo finalizar" description="El video sigue en memoria mientras esta pestana permanezca abierta." />
+          <CardHeader title="No se pudo finalizar" description="La entrevista sigue disponible mientras esta pestaña permanezca abierta." />
           <CardBody className="space-y-4">
             <Alert tone="error">{error}</Alert>
             <Button onClick={retrySubmitFinalPayload}>Reintentar subida y cierre</Button>

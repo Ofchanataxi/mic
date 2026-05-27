@@ -1,12 +1,12 @@
 import ScoreCard from './ScoreCard.jsx';
 
 const labels = {
-  technical: 'Tecnico',
-  softSkills: 'Soft skills',
-  code: 'Codigo',
+  technical: 'Técnico',
+  softSkills: 'Comunicación',
+  code: 'Código',
   audio: 'Audio',
   video: 'Video',
-  semantic: 'Semantico',
+  semantic: 'Claridad',
 };
 
 export default function DimensionScoresGrid({ scores = {} }) {

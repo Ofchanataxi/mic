@@ -92,11 +92,41 @@ const toContainerReachableMediaUrl = (accessUrl) => {
   }
 };
 
+const sleep = (ms) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
+const waitForVideoMediaReady = async (mediaId) => {
+  const startedAt = Date.now();
+  let lastMedia = null;
+
+  while (Date.now() - startedAt <= env.mediaReadyWaitMs) {
+    lastMedia = await mediaClient.getMedia(mediaId);
+    if (lastMedia.resourceType !== 'VIDEO') throw new Error('Interview mediaId must reference a VIDEO resource');
+
+    if (lastMedia.status === 'READY') {
+      return lastMedia;
+    }
+
+    if (lastMedia.status === 'FAILED') {
+      throw new Error(`Interview video media processing failed before evaluation: ${lastMedia.errorMessage || 'unknown error'}`);
+    }
+
+    logger.info('Waiting for interview video media to be ready', {
+      mediaId,
+      status: lastMedia.status,
+      waitedMs: Date.now() - startedAt,
+    });
+
+    await sleep(env.mediaReadyPollMs);
+  }
+
+  throw new Error(`Interview video media was not READY after ${env.mediaReadyWaitMs}ms. Current status: ${lastMedia?.status || 'UNKNOWN'}`);
+};
+
 const resolveVideoAccessUrl = async (interviewData) => {
   if (interviewData.mediaId) {
-    const media = await mediaClient.getMedia(interviewData.mediaId);
-    if (media.resourceType !== 'VIDEO') throw new Error('Interview mediaId must reference a VIDEO resource');
-    if (media.status !== 'READY') throw new Error(`Interview video media must be READY before evaluation. Current status: ${media.status}`);
+    await waitForVideoMediaReady(interviewData.mediaId);
 
     const access = await mediaClient.getMediaAccess(interviewData.mediaId);
     if (!access?.accessUrl) throw new Error('media-service access response is missing accessUrl');

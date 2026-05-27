@@ -99,22 +99,22 @@ export default function FeedbackPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Feedback"
+        eyebrow="Reporte"
         title="Reporte final"
-        description="Resumen de evaluacion multimodal y detalle por pregunta. El video se reproduce por segmento usando timestamps."
+        description="Resumen de tu entrevista, resultados por área y recomendaciones por pregunta."
         action={<Button variant="secondary" onClick={loadFeedback}>Actualizar</Button>}
       />
 
-      {loading ? <LoadingState label="Cargando feedback" /> : null}
+      {loading ? <LoadingState label="Cargando reporte" /> : null}
       {error ? <div className="mb-5"><Alert tone="error">{error}</Alert></div> : null}
 
       {!loading && notReady ? (
         <Card className="max-w-2xl">
-          <CardHeader title="Feedback aun no disponible" description="La evaluacion o generacion del reporte todavia esta en curso." />
+          <CardHeader title="Reporte aún no disponible" description="El análisis todavía está en curso." />
           <CardBody className="space-y-4">
-            <p className="text-sm leading-6 text-slate-600">Puedes volver a procesamiento para seguir el estado con polling.</p>
+            <p className="text-sm leading-6 text-slate-600">Puedes salir de esta pantalla y volver más tarde.</p>
             <Link to={`/interviews/${id}/processing`}>
-              <Button>Ver procesamiento</Button>
+              <Button>Ver estado</Button>
             </Link>
           </CardBody>
         </Card>

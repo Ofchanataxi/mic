@@ -10,7 +10,11 @@ const getOpenAIClient = () => {
     throw new Error('OPENAI_API_KEY is required for OpenAI operations');
   }
   if (!client) {
-    client = new OpenAI({ apiKey: env.openaiApiKey });
+    client = new OpenAI({
+      apiKey: env.openaiApiKey,
+      timeout: env.openaiTimeoutMs,
+      maxRetries: env.openaiMaxRetries,
+    });
   }
   return client;
 };

@@ -4,6 +4,24 @@ import { clearTokens, getAccessToken, getRefreshToken, setTokens } from '../../u
 
 export const AuthContext = createContext(null);
 
+function decodeJwtPayload(token) {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+    return JSON.parse(window.atob(padded));
+  } catch (_) {
+    return null;
+  }
+}
+
+function isAccessTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+  return payload.exp * 1000 <= Date.now() + 30000;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [bootstrapping, setBootstrapping] = useState(true);
@@ -20,12 +38,26 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     async function bootstrap() {
-      if (!getAccessToken()) {
+      const accessToken = getAccessToken();
+      const refreshToken = getRefreshToken();
+
+      if (!accessToken) {
         if (mounted) setBootstrapping(false);
         return;
       }
 
       try {
+        if (isAccessTokenExpired(accessToken)) {
+          if (!refreshToken) {
+            clearTokens();
+            if (mounted) setUser(null);
+            return;
+          }
+
+          const refreshed = await authApi.refresh(refreshToken);
+          setTokens(refreshed);
+        }
+
         const currentUser = await authApi.getCurrentUser();
         if (mounted) setUser(currentUser);
       } catch (_) {

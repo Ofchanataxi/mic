@@ -9,7 +9,7 @@ export default function ProtectedRoute() {
   if (bootstrapping) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Spinner label="Preparando sesion" />
+        <Spinner label="Preparando sesión" />
       </div>
     );
   }

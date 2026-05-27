@@ -3,17 +3,17 @@ import Button from './Button.jsx';
 import Card, { CardBody, CardHeader } from './Card.jsx';
 
 const instructions = [
-  { icon: Timer, text: 'La duracion depende del numero de preguntas. Reserva un bloque sin interrupciones.' },
-  { icon: Maximize2, text: 'Usa pantalla completa y evita cambiar de pestana durante la entrevista.' },
-  { icon: Camera, text: 'La camara y el microfono son requeridos antes de iniciar.' },
-  { icon: Mic, text: 'La grabacion sera continua y no se pausa.' },
-  { icon: ShieldAlert, text: 'Al finalizar se subira un unico video completo para evaluacion.' },
+  { icon: Timer, text: 'La duración depende del número de preguntas. Reserva un bloque sin interrupciones.' },
+  { icon: Maximize2, text: 'Usa pantalla completa y evita cambiar de pestaña durante la entrevista.' },
+  { icon: Camera, text: 'La cámara y el micrófono son requeridos antes de iniciar.' },
+  { icon: Mic, text: 'La grabación será continua y no se pausa.' },
+  { icon: ShieldAlert, text: 'Al finalizar, tu entrevista quedará lista para análisis.' },
 ];
 
 export default function InterviewInstructions({ questionCount, onStart, loading }) {
   return (
     <Card className="max-w-3xl">
-      <CardHeader title="Antes de iniciar" description={`${questionCount || 0} preguntas generadas. Lee estas recomendaciones antes de activar camara y microfono.`} />
+      <CardHeader title="Antes de iniciar" description={`${questionCount || 0} preguntas generadas. Lee estas recomendaciones antes de activar cámara y micrófono.`} />
       <CardBody className="space-y-5">
         <div className="grid gap-3">
           {instructions.map((item) => (

@@ -30,17 +30,17 @@ export default function HistoryCard({ item }) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase text-slate-500">Score</p>
+            <p className="text-xs font-semibold uppercase text-slate-500">Puntuación</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">{formatScore(item.globalScore)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 md:justify-end">
           <Link to={`/interviews/${item.interviewId}/processing`}>
-            <Button variant="secondary">{hasFeedback ? 'Ver entrevista' : 'Continuar procesamiento'}</Button>
+            <Button variant="secondary">{hasFeedback ? 'Ver entrevista' : 'Ver avance'}</Button>
           </Link>
           {hasFeedback ? (
             <Link to={`/interviews/${item.interviewId}/feedback`}>
-              <Button>Ver feedback</Button>
+              <Button>Ver reporte</Button>
             </Link>
           ) : null}
         </div>

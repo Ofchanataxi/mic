@@ -1,7 +1,7 @@
 import Alert from './Alert.jsx';
 import Button from './Button.jsx';
 
-export default function ErrorState({ title = 'Algo salio mal', message, onRetry }) {
+export default function ErrorState({ title = 'Algo salió mal', message, onRetry }) {
   return (
     <Alert tone="error" title={title}>
       <div className="space-y-3">

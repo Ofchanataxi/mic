@@ -55,7 +55,7 @@ export default function ProfilePage() {
       <PageHeader
         eyebrow="Perfil"
         title="Perfil del candidato"
-        description="Resumen estructurado generado desde el CV y topics evaluables para entrevistas adaptativas."
+        description="Resumen generado desde tu CV para personalizar tus entrevistas."
       />
 
       {loading ? <LoadingState label="Cargando perfil" /> : null}
@@ -64,8 +64,8 @@ export default function ProfilePage() {
       {!loading && !error && !profile ? (
         <EmptyState
           icon={FileText}
-          title="Aun no hay perfil generado"
-          description="Sube un CV en PDF para que candidate-service construya el perfil y los topics de evaluacion."
+          title="Aún no hay perfil generado"
+          description="Sube un CV en PDF para preparar tu perfil."
           action={<Link className="focus-ring inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700" to="/cv">Subir CV</Link>}
         />
       ) : null}
@@ -75,7 +75,7 @@ export default function ProfilePage() {
           <ProfileSummaryCard profile={profile} />
 
           <Card>
-            <CardHeader title="Topics y subtopics" description={`${topics.length} areas detectadas`} />
+            <CardHeader title="Áreas de evaluación" description={`${topics.length} áreas detectadas`} />
             <CardBody className="space-y-4">
               {topics.map((topic) => <TopicBadge key={topic.id || topic.name} topic={topic} />)}
             </CardBody>

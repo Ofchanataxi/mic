@@ -21,6 +21,8 @@ const env = {
   candidateServiceUrl: process.env.CANDIDATE_SERVICE_URL || 'http://localhost:3001',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  openaiTimeoutMs: toNumber(process.env.OPENAI_TIMEOUT_MS, 90000),
+  openaiMaxRetries: toNumber(process.env.OPENAI_MAX_RETRIES, 1),
   allowReadyReportRegeneration: toBoolean(process.env.ALLOW_READY_REPORT_REGENERATION, false),
   internalServiceToken: process.env.INTERNAL_SERVICE_TOKEN || '',
 };

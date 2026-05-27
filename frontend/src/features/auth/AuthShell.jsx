@@ -10,13 +10,13 @@ export default function AuthShell({ title, description, children }) {
           </div>
           <div>
             <p className="font-bold">MIC Interviews</p>
-            <p className="text-sm text-indigo-100">Technical assessment platform</p>
+            <p className="text-sm text-indigo-100">Plataforma de entrevistas técnicas</p>
           </div>
         </div>
         <div className="max-w-lg">
-          <h1 className="text-3xl font-bold leading-tight">Entrevistas tecnicas con evidencia multimodal.</h1>
+          <h1 className="text-3xl font-bold leading-tight">Entrevistas técnicas con evidencia multimodal.</h1>
           <p className="mt-4 text-sm leading-6 text-indigo-100">
-            Gestiona perfil, entrevista, procesamiento y feedback desde un flujo unificado.
+            Gestiona tu perfil, tus entrevistas y tus reportes en un solo lugar.
           </p>
         </div>
       </div>

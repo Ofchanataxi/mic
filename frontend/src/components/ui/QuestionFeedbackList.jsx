@@ -1,4 +1,4 @@
-import { formatScore } from '../../utils/formatters.js';
+import { formatScore, formatSkillType } from '../../utils/formatters.js';
 import StatusBadge from './StatusBadge.jsx';
 
 export default function QuestionFeedbackList({ questions = [], selectedId, onSelect }) {
@@ -21,7 +21,7 @@ export default function QuestionFeedbackList({ questions = [], selectedId, onSel
             <StatusBadge status={question.status} fallback={question.finalScore !== null ? formatScore(question.finalScore) : 'PENDING'} />
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-            {question.skillType ? <span>{question.skillType}</span> : null}
+            {question.skillType ? <span>{formatSkillType(question.skillType)}</span> : null}
             {question.topic ? <span>{question.topic}</span> : null}
           </div>
         </button>

@@ -15,7 +15,7 @@ export default function Sidebar() {
       <div className="flex h-16 items-center border-b border-slate-100 px-6">
         <div>
           <p className="text-lg font-bold text-slate-950">MIC Interviews</p>
-          <p className="text-xs text-slate-500">Technical assessment</p>
+          <p className="text-xs text-slate-500">Entrevistas técnicas</p>
         </div>
       </div>
       <nav className="space-y-1 p-4">

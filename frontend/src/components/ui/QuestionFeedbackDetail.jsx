@@ -35,14 +35,14 @@ function buildSemanticAnalysis(question) {
   if (!semantic) return null;
   const summary = typeof semantic === 'string'
     ? semantic
-    : semantic.justification || 'La evaluacion semantica revisa claridad, coherencia, profundidad y relevancia de la respuesta.';
+    : semantic.justification || 'La respuesta se revisó por claridad, coherencia, profundidad y relevancia.';
 
   return {
-    title: 'Comentario semantico',
+    title: 'Comentario de claridad',
     summary,
     items: [
-      formatPercent(semantic.overallSemanticScore || question.scores?.semantic) && `Resultado semantico: ${formatPercent(semantic.overallSemanticScore || question.scores?.semantic)}`,
-      formatPercent(semantic.technicalAccuracyScore) && `Precision tecnica: ${formatPercent(semantic.technicalAccuracyScore)}`,
+      formatPercent(semantic.overallSemanticScore || question.scores?.semantic) && `Claridad general: ${formatPercent(semantic.overallSemanticScore || question.scores?.semantic)}`,
+      formatPercent(semantic.technicalAccuracyScore) && `Precisión técnica: ${formatPercent(semantic.technicalAccuracyScore)}`,
       formatPercent(semantic.clarityScore) && `Claridad: ${formatPercent(semantic.clarityScore)}`,
       formatPercent(semantic.depthScore) && `Profundidad: ${formatPercent(semantic.depthScore)}`,
     ],
@@ -56,13 +56,13 @@ function buildAudioAnalysis(question) {
   const summary = [
     indicators.responseLength,
     indicators.speechRate,
-  ].filter(Boolean).join('. ') || 'El audio se reviso con una heuristica basada en duracion y transcripcion.';
+  ].filter(Boolean).join('. ') || 'El audio se revisó considerando duración, ritmo y contenido hablado.';
 
   return {
     title: 'Comentario de audio',
     summary,
     items: [
-      Number.isFinite(Number(audio.wordCount)) && `${audio.wordCount} palabras detectadas en la transcripcion.`,
+      Number.isFinite(Number(audio.wordCount)) && `${audio.wordCount} palabras detectadas en la transcripción.`,
       formatSpeechRate(audio.speechRate) && `Ritmo aproximado: ${formatSpeechRate(audio.speechRate)}.`,
       formatPercent(audio.fluencyScore || question.scores?.audio) && `Fluidez estimada: ${formatPercent(audio.fluencyScore || question.scores?.audio)}.`,
       indicators.pauseEstimation,
@@ -77,8 +77,8 @@ function buildVideoAnalysis(question) {
   const raw = video.rawData || {};
   const unavailable = ['VIDEO_MODEL_NOT_CONFIGURED', 'VIDEO_SEGMENT_UNAVAILABLE'].includes(raw.status);
   const summary = unavailable
-    ? 'El analisis visual automatico no tuvo suficiente configuracion o segmento disponible para emitir una conclusion confiable.'
-    : 'El analisis visual se baso en senales observables del segmento de respuesta, sin inferir condiciones personales.';
+    ? 'No hubo suficiente información visual para emitir una conclusión confiable.'
+    : 'La revisión visual se basó en señales observables de la respuesta, sin inferir condiciones personales.';
 
   return {
     title: 'Comentario de video',
@@ -87,13 +87,13 @@ function buildVideoAnalysis(question) {
       behavior.visiblePerson === true && 'La persona aparece visible en los frames analizados.',
       behavior.visiblePerson === false && 'No se pudo confirmar una persona visible en el segmento.',
       behavior.framing && `Encuadre: ${behavior.framing}.`,
-      behavior.gazeObservation && `Mirada/orientacion: ${behavior.gazeObservation}.`,
+      behavior.gazeObservation && `Mirada/orientación: ${behavior.gazeObservation}.`,
       behavior.postureObservation && `Postura observable: ${behavior.postureObservation}.`,
-      behavior.attentionObservation && `Atencion observable: ${behavior.attentionObservation}.`,
-      ...asArray(behavior.limitations).map((item) => `Limitacion: ${item}.`),
+      behavior.attentionObservation && `Atención observable: ${behavior.attentionObservation}.`,
+      ...asArray(behavior.limitations).map((item) => `Limitación: ${item}.`),
       formatPercent(video.eyeContactScore) && `Contacto visual estimado: ${formatPercent(video.eyeContactScore)}.`,
       formatPercent(video.postureScore) && `Postura estimada: ${formatPercent(video.postureScore)}.`,
-      formatPercent(video.attentionScore) && `Atencion estimada: ${formatPercent(video.attentionScore)}.`,
+      formatPercent(video.attentionScore) && `Atención estimada: ${formatPercent(video.attentionScore)}.`,
     ],
   };
 }
@@ -103,21 +103,20 @@ function buildCodeAnalysis(question) {
   if (!code) return null;
   const status = code.compilationStatus || code.rawData?.status;
   const summary = status === 'NO_CODE_SUBMISSION'
-    ? 'No se recibio una solucion de codigo para esta pregunta.'
+    ? 'No se recibió una solución de código para esta pregunta.'
     : status === 'JUDGE0_NOT_CONFIGURED'
-      ? 'La ejecucion automatica de codigo no estuvo configurada al momento de evaluar.'
+      ? 'No fue posible ejecutar automáticamente la solución.'
       : status === 'JUDGE0_REQUEST_FAILED'
-        ? 'No se pudo ejecutar el codigo en Judge0, pero la pregunta se mantuvo evaluable con el resto de senales disponibles.'
-        : 'La solucion de codigo fue ejecutada con Judge0 y se uso el resultado para calcular el score.';
+        ? 'No se pudo ejecutar el código, pero la pregunta se evaluó con la información disponible.'
+        : 'La solución de código fue ejecutada y se usó el resultado en la calificación.';
 
   return {
-    title: 'Comentario de codigo',
+    title: 'Comentario de código',
     summary,
     items: [
-      status && `Estado de ejecucion: ${status}.`,
       Number.isFinite(Number(code.passedTests)) && Number.isFinite(Number(code.totalTests)) && `${code.passedTests}/${code.totalTests} pruebas superadas.`,
-      formatPercent(code.executionScore || question.scores?.code) && `Resultado de codigo: ${formatPercent(code.executionScore || question.scores?.code)}.`,
-      code.runtimeError && `Observacion tecnica: ${String(code.runtimeError).slice(0, 220)}.`,
+      formatPercent(code.executionScore || question.scores?.code) && `Resultado de código: ${formatPercent(code.executionScore || question.scores?.code)}.`,
+      code.runtimeError && `Observación técnica: ${String(code.runtimeError).slice(0, 220)}.`,
     ],
   };
 }
@@ -149,16 +148,16 @@ export default function QuestionFeedbackDetail({ question }) {
         </section>
         {question.transcription ? (
           <section>
-            <h3 className="text-sm font-semibold text-slate-950">Transcripcion</h3>
+            <h3 className="text-sm font-semibold text-slate-950">Transcripción</h3>
             <p className="mt-2 rounded-md bg-slate-50 p-4 text-sm leading-6 text-slate-700">{question.transcription}</p>
           </section>
         ) : null}
         <section className="grid gap-3 md:grid-cols-2">
-          <ScoreBar label="Score final" value={question.finalScore} />
-          <ScoreBar label="Semantico" value={question.scores?.semantic} />
+          <ScoreBar label="Puntuación final" value={question.finalScore} />
+          <ScoreBar label="Claridad" value={question.scores?.semantic} />
           <ScoreBar label="Audio" value={question.scores?.audio} />
           <ScoreBar label="Video" value={question.scores?.video} />
-          <ScoreBar label="Codigo" value={question.scores?.code} />
+          <ScoreBar label="Código" value={question.scores?.code} />
         </section>
         <div className="grid gap-4 lg:grid-cols-3">
           <RecommendationList title="Fortalezas" items={question.strengths} />

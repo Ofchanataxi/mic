@@ -7,7 +7,7 @@ import { useAuth } from '../auth/useAuth.js';
 const actions = [
   {
     title: 'Subir CV / Perfil',
-    description: 'Carga tu CV y genera el perfil estructurado para entrevistas adaptativas.',
+    description: 'Carga tu CV y prepara un perfil para personalizar tus entrevistas.',
     to: '/cv',
     icon: FileText,
   },
@@ -19,13 +19,13 @@ const actions = [
   },
   {
     title: 'Historial',
-    description: 'Revisa entrevistas, estado de procesamiento y reportes disponibles.',
+    description: 'Revisa tus entrevistas, su avance y los reportes disponibles.',
     to: '/history',
     icon: History,
   },
   {
-    title: 'Feedback',
-    description: 'Accede al reporte final cuando el procesamiento haya terminado.',
+    title: 'Reporte',
+    description: 'Accede a recomendaciones y resultados cuando el análisis termine.',
     to: '/history',
     icon: MessageSquareText,
   },
@@ -40,7 +40,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Inicio"
         title={`Hola, ${name}`}
-        description="Este panel concentra el flujo principal: CV, perfil, entrevistas, procesamiento y feedback."
+        description="Continúa tu preparación desde un solo lugar."
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -68,7 +68,7 @@ export default function DashboardPage() {
           <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-base font-semibold text-slate-950">Estado general</h2>
-              <p className="mt-1 text-sm text-slate-500">La siguiente fase conectara detalle de feedback, video segmentado y sesion completa.</p>
+              <p className="mt-1 text-sm text-slate-500">Consulta tu historial para revisar entrevistas y reportes disponibles.</p>
             </div>
             <Link className="text-sm font-semibold text-brand-700 hover:text-brand-600" to="/history">
               Ver historial

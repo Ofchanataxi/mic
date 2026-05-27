@@ -36,14 +36,14 @@ export default function LoginPage() {
     <AuthShell title="Ingresar" description="Usa tu cuenta para continuar con tu proceso de entrevista.">
       <form className="space-y-4" onSubmit={handleSubmit}>
         {error ? <Alert tone="error">{error}</Alert> : null}
-        <Input id="email" name="email" label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField} required />
-        <Input id="password" name="password" label="Password" type="password" autoComplete="current-password" value={form.password} onChange={updateField} required />
+        <Input id="email" name="email" label="Correo electrónico" type="email" autoComplete="email" value={form.email} onChange={updateField} required />
+        <Input id="password" name="password" label="Contraseña" type="password" autoComplete="current-password" value={form.password} onChange={updateField} required />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Ingresando...' : 'Ingresar'}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        No tienes cuenta?{' '}
+        ¿No tienes cuenta?{' '}
         <Link className="font-semibold text-brand-700 hover:text-brand-600" to="/register">
           Crear cuenta
         </Link>

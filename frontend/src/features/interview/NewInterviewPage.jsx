@@ -69,11 +69,11 @@ export default function NewInterviewPage() {
       <PageHeader
         eyebrow="Entrevista"
         title="Nueva entrevista"
-        description="Configura la entrevista. Al crearla iras a una sesion real con camara, grabacion continua y editor para preguntas de codigo."
+        description="Configura la entrevista. Al crearla irás a una sesión con cámara, grabación continua y preguntas adaptadas a tu perfil."
       />
 
       <Card className="max-w-2xl">
-        <CardHeader title="Configuracion" description={profile ? `Perfil: ${profile.fullName || profile.id}` : 'Perfil no encontrado'} />
+        <CardHeader title="Configuración" description={profile ? `Perfil: ${profile.fullName || 'listo para entrevista'}` : 'Perfil no encontrado'} />
         <CardBody>
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error ? <Alert tone="error">{error}</Alert> : null}

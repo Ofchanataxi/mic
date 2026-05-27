@@ -33,21 +33,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthShell title="Crear cuenta" description="Registra tus datos para iniciar el flujo de perfil y entrevistas.">
+    <AuthShell title="Crear cuenta" description="Registra tus datos para iniciar tus entrevistas.">
       <form className="space-y-4" onSubmit={handleSubmit}>
         {error ? <Alert tone="error">{error}</Alert> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input id="firstName" name="firstName" label="Nombre" value={form.firstName} onChange={updateField} required />
           <Input id="lastName" name="lastName" label="Apellido" value={form.lastName} onChange={updateField} required />
         </div>
-        <Input id="email" name="email" label="Email" type="email" autoComplete="email" value={form.email} onChange={updateField} required />
-        <Input id="password" name="password" label="Password" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={updateField} required />
+        <Input id="email" name="email" label="Correo electrónico" type="email" autoComplete="email" value={form.email} onChange={updateField} required />
+        <Input id="password" name="password" label="Contraseña" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={updateField} required />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? 'Creando cuenta...' : 'Crear cuenta'}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
-        Ya tienes cuenta?{' '}
+        ¿Ya tienes cuenta?{' '}
         <Link className="font-semibold text-brand-700 hover:text-brand-600" to="/login">
           Ingresar
         </Link>

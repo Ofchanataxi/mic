@@ -2,6 +2,7 @@ import Badge from './Badge.jsx';
 import Card, { CardBody, CardHeader } from './Card.jsx';
 import MonacoCodeEditor from './MonacoCodeEditor.jsx';
 import Select from './Select.jsx';
+import { formatSkillType } from '../../utils/formatters.js';
 
 const languageOptions = ['javascript', 'python', 'java', 'typescript', 'cpp'];
 
@@ -13,8 +14,8 @@ export default function InterviewQuestionCard({ question, response, onAnswerChan
     <Card>
       <CardHeader
         title={`Pregunta ${question.orderIndex || ''}`}
-        description={`${question.topic || 'Topic'} - ${question.subtopic || 'Subtopic'}`}
-        action={<Badge tone={isCoding ? 'info' : 'default'}>{question.questionType}</Badge>}
+        description={`${question.topic || 'Área'} - ${question.subtopic || 'Tema'}`}
+        action={<Badge tone={isCoding ? 'info' : 'default'}>{formatSkillType(question.questionType)}</Badge>}
       />
       <CardBody className="space-y-5">
         <div className="rounded-lg bg-slate-50 p-5 text-base leading-7 text-slate-900">
@@ -48,7 +49,7 @@ export default function InterviewQuestionCard({ question, response, onAnswerChan
               className="focus-ring min-h-48 w-full resize-y rounded-md border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-900 placeholder:text-slate-400"
               value={response?.answerText || ''}
               onChange={(event) => onAnswerChange(event.target.value)}
-              placeholder="Escribe tu respuesta aqui..."
+              placeholder="Escribe tu respuesta aquí..."
             />
           </label>
         )}

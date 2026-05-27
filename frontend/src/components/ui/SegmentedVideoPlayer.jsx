@@ -29,7 +29,7 @@ export default function SegmentedVideoPlayer({ videoUrl, question }) {
 
   return (
     <Card>
-      <CardHeader title="Video de entrevista" description={hasSegment ? `Segmento ${Math.round(startSeconds)}s - ${Math.round(endSeconds)}s` : 'Segmento no disponible'} />
+      <CardHeader title="Video de entrevista" description={hasSegment ? 'Fragmento correspondiente a esta pregunta' : 'Fragmento no disponible'} />
       <CardBody className="space-y-3">
         {videoUrl ? (
           <video ref={videoRef} src={videoUrl} controls className="aspect-video w-full rounded-md bg-slate-950" />
