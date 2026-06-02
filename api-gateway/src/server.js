@@ -23,8 +23,8 @@ const corsOptions = {
     return callback(new Error(`CORS origin not allowed: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type', 'x-internal-service-token', 'x-request-id'],
-  exposedHeaders: ['x-request-id'],
+  allowedHeaders: ['Authorization', 'Content-Type', 'Range', 'x-internal-service-token', 'x-request-id'],
+  exposedHeaders: ['x-request-id', 'Accept-Ranges', 'Content-Length', 'Content-Range'],
   credentials: true,
 };
 
@@ -33,7 +33,13 @@ const limiter = rateLimit({
   max: env.rateLimitMaxRequests,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/health' || req.path === '/api/v1/health',
+  skip: (req) => (
+    req.path === '/health'
+    || req.path === '/api/v1/health'
+    || req.path === '/api/v1/health/services'
+    || req.path.startsWith('/api/v1/auth/')
+    || /^\/api\/v1\/media\/[^/]+\/file$/.test(req.path)
+  ),
   handler: (req, res) => {
     res.status(429).json({
       error: {
@@ -47,7 +53,9 @@ const limiter = rateLimit({
 
 app.disable('x-powered-by');
 app.use(requestIdMiddleware);
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(limiter);

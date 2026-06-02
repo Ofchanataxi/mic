@@ -57,6 +57,8 @@ const env = {
   defaultQuestionCount: parseInteger("DEFAULT_QUESTION_COUNT", "8"),
   minQuestionCount: parseInteger("MIN_QUESTION_COUNT", "5"),
   maxQuestionCount: parseInteger("MAX_QUESTION_COUNT", "12"),
+  minCodingQuestionsSmallInterview: parseInteger("MIN_CODING_QUESTIONS_SMALL_INTERVIEW", "1"),
+  minCodingQuestionsLargeInterview: parseInteger("MIN_CODING_QUESTIONS_LARGE_INTERVIEW", "2"),
   questionGenerationMaxAttempts: parseInteger("QUESTION_GENERATION_MAX_ATTEMPTS", "3"),
   questionSimilarityThreshold: parseFloatEnv("QUESTION_SIMILARITY_THRESHOLD", "0.85"),
   httpClientTimeoutMs: parseInteger("HTTP_CLIENT_TIMEOUT_MS", "30000")

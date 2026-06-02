@@ -70,18 +70,70 @@ const validateQuestion = (question) => {
   if (question.endTimeMs <= question.startTimeMs) throw new Error(`Question ${question.questionId} has invalid timestamp range`);
 };
 
+const toContainerReachableMediaUrl = (accessUrl) => {
+  if (!accessUrl) return accessUrl;
+
+  try {
+    const parsedAccessUrl = new URL(accessUrl);
+    const parsedMediaServiceUrl = new URL(env.mediaServiceUrl);
+    const isLocalhostUrl = ['localhost', '127.0.0.1', '::1'].includes(parsedAccessUrl.hostname);
+
+    if (!isLocalhostUrl || parsedMediaServiceUrl.hostname === parsedAccessUrl.hostname) {
+      return accessUrl;
+    }
+
+    parsedAccessUrl.protocol = parsedMediaServiceUrl.protocol;
+    parsedAccessUrl.hostname = parsedMediaServiceUrl.hostname;
+    parsedAccessUrl.port = parsedMediaServiceUrl.port;
+    return parsedAccessUrl.toString();
+  } catch (error) {
+    logger.warn('Unable to normalize media access URL; using original URL', { error: error.message });
+    return accessUrl;
+  }
+};
+
+const sleep = (ms) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
+const waitForVideoMediaReady = async (mediaId) => {
+  const startedAt = Date.now();
+  let lastMedia = null;
+
+  while (Date.now() - startedAt <= env.mediaReadyWaitMs) {
+    lastMedia = await mediaClient.getMedia(mediaId);
+    if (lastMedia.resourceType !== 'VIDEO') throw new Error('Interview mediaId must reference a VIDEO resource');
+
+    if (lastMedia.status === 'READY') {
+      return lastMedia;
+    }
+
+    if (lastMedia.status === 'FAILED') {
+      throw new Error(`Interview video media processing failed before evaluation: ${lastMedia.errorMessage || 'unknown error'}`);
+    }
+
+    logger.info('Waiting for interview video media to be ready', {
+      mediaId,
+      status: lastMedia.status,
+      waitedMs: Date.now() - startedAt,
+    });
+
+    await sleep(env.mediaReadyPollMs);
+  }
+
+  throw new Error(`Interview video media was not READY after ${env.mediaReadyWaitMs}ms. Current status: ${lastMedia?.status || 'UNKNOWN'}`);
+};
+
 const resolveVideoAccessUrl = async (interviewData) => {
   if (interviewData.mediaId) {
-    const media = await mediaClient.getMedia(interviewData.mediaId);
-    if (media.resourceType !== 'VIDEO') throw new Error('Interview mediaId must reference a VIDEO resource');
-    if (media.status !== 'READY') throw new Error(`Interview video media must be READY before evaluation. Current status: ${media.status}`);
+    await waitForVideoMediaReady(interviewData.mediaId);
 
     const access = await mediaClient.getMediaAccess(interviewData.mediaId);
     if (!access?.accessUrl) throw new Error('media-service access response is missing accessUrl');
     if (access.resourceType !== 'VIDEO') throw new Error('media-service access response is not a VIDEO resource');
-    return access.accessUrl;
+    return toContainerReachableMediaUrl(access.accessUrl);
   }
-  return interviewData.videoAccessUrl;
+  return toContainerReachableMediaUrl(interviewData.videoAccessUrl);
 };
 
 const processQuestion = async ({ interviewEvaluation, interviewId, question, paths }) => {
@@ -97,12 +149,28 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
 
     const segmentName = `question-${question.order || safeName(question.questionId)}.mp3`;
     const audioPath = path.join(paths.segments, segmentName);
+    let videoSegmentPath = path.join(paths.videoSegments, `question-${question.order || safeName(question.questionId)}.mp4`);
     await ffmpegProvider.extractAudioSegment({
       videoPath: paths.sourceVideo,
       outputPath: audioPath,
       startTimeMs: question.startTimeMs,
       endTimeMs: question.endTimeMs,
     });
+    try {
+      await ffmpegProvider.optionallyExtractVideoSegment({
+        videoPath: paths.sourceVideo,
+        outputPath: videoSegmentPath,
+        startTimeMs: question.startTimeMs,
+        endTimeMs: question.endTimeMs,
+      });
+    } catch (error) {
+      logger.warn('Video segment extraction failed; continuing with metadata-only unavailable video analysis', {
+        interviewId,
+        questionId: question.questionId,
+        error: error.message,
+      });
+      videoSegmentPath = null;
+    }
 
     const transcription = await transcriptionService.transcribeSegment(audioPath);
     const durationMs = question.endTimeMs - question.startTimeMs;
@@ -115,7 +183,7 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
     });
     const audio = audioAnalysisService.analyzeAudio({ transcription, durationMs });
     const video = await videoAnalysisService.analyzeVideo({
-      videoSegmentPath: null,
+      videoSegmentPath,
       startTimeMs: question.startTimeMs,
       endTimeMs: question.endTimeMs,
     });

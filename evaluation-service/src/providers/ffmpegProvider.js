@@ -55,9 +55,32 @@ const optionallyExtractVideoSegment = async ({ videoPath, outputPath, startTimeM
   return outputPath;
 };
 
+const extractVideoFrames = async ({ videoPath, outputDir, count = 3 }) => {
+  await fs.mkdir(outputDir, { recursive: true });
+
+  await new Promise((resolve, reject) => {
+    ffmpeg(videoPath)
+      .on('end', resolve)
+      .on('error', reject)
+      .screenshots({
+        count,
+        folder: outputDir,
+        filename: 'frame-%i.jpg',
+        size: '640x?',
+      });
+  });
+
+  const files = await fs.readdir(outputDir);
+  return files
+    .filter((file) => /^frame-\d+\.jpg$/i.test(file))
+    .sort()
+    .map((file) => require('path').join(outputDir, file));
+};
+
 module.exports = {
   ensureFfmpegAvailable,
   getMediaMetadata,
   extractAudioSegment,
   optionallyExtractVideoSegment,
+  extractVideoFrames,
 };

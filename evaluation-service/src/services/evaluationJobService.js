@@ -58,12 +58,18 @@ const retryInterview = async ({ interviewId }) => {
   const job = await evaluationJobRepository.findByInterviewId(interviewId);
   if (!job) throw new AppError('Evaluation job not found', 404);
 
-  if (job.status === 'COMPLETED' && !env.allowCompletedReprocess) {
+  const interviewEvaluation = await interviewEvaluationRepository.findByInterviewId(interviewId);
+  const canRetryPartialEvaluation = ['PARTIAL', 'FAILED'].includes(interviewEvaluation?.status);
+
+  if (job.status === 'COMPLETED' && !env.allowCompletedReprocess && !canRetryPartialEvaluation) {
     throw new AppError('Completed evaluations cannot be reprocessed unless ALLOW_COMPLETED_REPROCESS=true', 409);
   }
 
-  if (job.status !== 'FAILED' && !(job.status === 'COMPLETED' && env.allowCompletedReprocess)) {
-    throw new AppError('Only failed evaluations can be retried in the current configuration', 409);
+  if (
+    job.status !== 'FAILED'
+    && !(job.status === 'COMPLETED' && (env.allowCompletedReprocess || canRetryPartialEvaluation))
+  ) {
+    throw new AppError('Only failed or partial evaluations can be retried in the current configuration', 409);
   }
 
   const pending = await evaluationJobRepository.markPendingForRetry(job.id);

@@ -6,7 +6,7 @@ const client = axios.create({
   timeout: env.httpClientTimeoutMs
 });
 
-async function dispatchInterviewFinished(interviewId) {
+async function dispatchInterviewFinished({ interviewId, userId }) {
   if (!env.enableEvaluationDispatch) {
     return {
       dispatched: false,
@@ -14,8 +14,9 @@ async function dispatchInterviewFinished(interviewId) {
     };
   }
 
-  await client.post("/evaluations/interviews", {
-    interviewId
+  await client.post("/evaluations/process", {
+    interviewId,
+    userId
   });
 
   return {

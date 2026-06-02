@@ -134,11 +134,44 @@ class MediaService {
       throw new ApiError(409, "Media is not ready for streaming");
     }
 
+    const size = Number(media.sizeBytes || 0);
+    const range = res.req.headers.range;
+
     res.setHeader("Content-Type", media.mimeType);
+    res.setHeader("Accept-Ranges", "bytes");
     res.setHeader(
       "Content-Disposition",
       `inline; filename="${path.basename(media.storageKey)}"`
     );
+
+    if (typeof storageProvider.downloadFileBuffer === "function") {
+      const buffer = await storageProvider.downloadFileBuffer(media.storageKey);
+      const totalSize = buffer.length;
+
+      if (range) {
+      const match = range.match(/bytes=(\d*)-(\d*)/);
+      if (match) {
+        const start = match[1] ? Number(match[1]) : 0;
+        const end = match[2] ? Number(match[2]) : totalSize - 1;
+
+        if (Number.isFinite(start) && Number.isFinite(end) && start <= end && end < totalSize) {
+          res.status(206);
+          res.setHeader("Content-Range", `bytes ${start}-${end}/${totalSize}`);
+          res.setHeader("Content-Length", end - start + 1);
+          res.end(buffer.subarray(start, end + 1));
+          return;
+        }
+      }
+      }
+
+      res.setHeader("Content-Length", totalSize);
+      res.end(buffer);
+      return;
+    }
+
+    if (size > 0) {
+      res.setHeader("Content-Length", size);
+    }
 
     await storageProvider.streamFile(media.storageKey, res);
   }

@@ -29,6 +29,11 @@ const finishInterview = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
+const abandonInterview = asyncHandler(async (req, res) => {
+  const result = await interviewService.abandonInterview(req.params.id);
+  res.status(200).json(result);
+});
+
 const getEvaluationPayload = asyncHandler(async (req, res) => {
   const result = await interviewService.getEvaluationPayload(req.params.id);
   res.status(200).json(result);
@@ -40,5 +45,6 @@ module.exports = {
   getInterview,
   startInterview,
   finishInterview,
+  abandonInterview,
   getEvaluationPayload
 };

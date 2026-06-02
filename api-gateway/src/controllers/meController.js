@@ -25,6 +25,17 @@ const getProfile = asyncHandler(async (req, res) => {
   res.json(profile);
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const profile = await requestService(req, {
+    baseURL: env.candidateServiceUrl,
+    url: `/candidates/profile/${encodeURIComponent(userId)}`,
+    method: 'PATCH',
+    data: req.body || {},
+  });
+  res.json(profile);
+});
+
 const getTopics = asyncHandler(async (req, res) => {
   const userId = getUserId(req);
   const topics = await requestService(req, {
@@ -42,6 +53,14 @@ const getReports = asyncHandler(async (req, res) => {
   });
   res.json(reports);
 });
+
+const ABANDONED_INTERVIEW_GRACE_MS = 5 * 60 * 1000;
+
+const isStaleActiveInterview = (interview) => {
+  if (interview.status !== 'IN_PROGRESS') return false;
+  const lastUpdate = new Date(interview.updatedAt || interview.startedAt || interview.createdAt).getTime();
+  return Number.isFinite(lastUpdate) && Date.now() - lastUpdate > ABANDONED_INTERVIEW_GRACE_MS;
+};
 
 const listHistory = asyncHandler(async (req, res) => {
   const userId = getUserId(req);
@@ -65,17 +84,19 @@ const listHistory = asyncHandler(async (req, res) => {
     userId,
     items: interviews.map((interview) => {
       const report = reportByInterviewId.get(interview.interviewId);
+      const closedWithoutReport = interview.status === 'CANCELLED' || (isStaleActiveInterview(interview) && !report);
       return {
         interviewId: interview.interviewId,
         createdAt: interview.createdAt,
         targetRole: interview.targetRole,
         level: interview.level,
-        interviewStatus: interview.status,
+        interviewStatus: closedWithoutReport ? 'CANCELLED' : interview.status,
         evaluationStatus: interview.evaluationStatus,
         feedbackStatus: report?.status || null,
         globalScore: report?.overallScore ?? null,
         videoMediaId: interview.videoMediaId,
         feedbackReportId: report?.reportId || null,
+        closedWithoutReport,
       };
     }),
   });
@@ -84,6 +105,7 @@ const listHistory = asyncHandler(async (req, res) => {
 module.exports = {
   getMe,
   getProfile,
+  updateProfile,
   getTopics,
   getReports,
   listHistory,

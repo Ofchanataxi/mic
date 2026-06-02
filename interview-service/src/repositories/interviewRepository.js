@@ -129,6 +129,18 @@ async function markStarted(id, startedAt) {
   });
 }
 
+async function markCancelled(id, finishedAt) {
+  return prisma.interview.update({
+    where: { id },
+    data: {
+      status: "CANCELLED",
+      evaluationStatus: "NOT_REQUESTED",
+      finishedAt
+    },
+    include: includeInterviewDetails()
+  });
+}
+
 async function finishInterview({ id, videoMediaId, responses, evaluationStatus, finishedAt }) {
   return prisma.$transaction(async (tx) => {
     await tx.interviewResponse.deleteMany({
@@ -189,6 +201,7 @@ module.exports = {
   listByUserId,
   findPreviousEmbeddingsByUserId,
   markStarted,
+  markCancelled,
   finishInterview,
   updateEvaluationStatus
 };

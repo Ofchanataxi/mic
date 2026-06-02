@@ -72,7 +72,16 @@ const retryFeedback = async ({ interviewId }) => {
 
 const getJobStatus = async (interviewId) => {
   const job = await feedbackJobRepository.findByInterviewId(interviewId);
-  if (!job) throw new AppError('Feedback job not found', 404);
+  if (!job) {
+    return {
+      interviewId,
+      status: 'WAITING',
+      attempts: 0,
+      errorMessage: null,
+      startedAt: null,
+      finishedAt: null,
+    };
+  }
   return job;
 };
 

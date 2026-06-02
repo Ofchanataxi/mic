@@ -61,6 +61,14 @@ class CandidateRepository {
     });
   }
 
+  async updateProfileByUserId(userId, data) {
+    return prisma.candidateProfile.update({
+      where: { userId },
+      data,
+      include: this.profileIncludes()
+    });
+  }
+
   async findTopicsByUserId(userId) {
     const profile = await prisma.candidateProfile.findUnique({
       where: { userId },
