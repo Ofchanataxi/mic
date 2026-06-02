@@ -1,5 +1,6 @@
 const {
   validateCreateProfileFromCv,
+  validateUpdateProfile,
   validateAdaptiveStrategyQuery,
   validatePerformancePayload
 } = require("../dto/candidateValidators");
@@ -21,6 +22,16 @@ async function createProfileFromCv(req, res, next) {
 async function getProfile(req, res, next) {
   try {
     const profile = await profileService.getProfile(req.params.userId);
+    res.status(200).json(profile);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateProfile(req, res, next) {
+  try {
+    const payload = validateUpdateProfile(req.body || {});
+    const profile = await profileService.updateProfile(req.params.userId, payload);
     res.status(200).json(profile);
   } catch (error) {
     next(error);
@@ -62,6 +73,7 @@ async function updatePerformance(req, res, next) {
 module.exports = {
   createProfileFromCv,
   getProfile,
+  updateProfile,
   getTopics,
   getAdaptiveStrategy,
   updatePerformance

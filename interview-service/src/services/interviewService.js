@@ -288,6 +288,33 @@ async function finishInterview(id, input) {
   };
 }
 
+async function abandonInterview(id) {
+  const interview = await interviewRepository.findById(id);
+
+  if (!interview) {
+    throw new ApiError(404, "Interview not found");
+  }
+
+  if (interview.status === "FINISHED" || interview.status === "CANCELLED") {
+    return {
+      interviewId: interview.id,
+      status: interview.status,
+      evaluationStatus: interview.evaluationStatus
+    };
+  }
+
+  if (interview.status !== "CREATED" && interview.status !== "IN_PROGRESS") {
+    throw new ApiError(409, "Only active interviews can be closed");
+  }
+
+  const updated = await interviewRepository.markCancelled(id, new Date());
+  return {
+    interviewId: updated.id,
+    status: updated.status,
+    evaluationStatus: updated.evaluationStatus
+  };
+}
+
 async function getEvaluationPayload(id) {
   const interview = await interviewRepository.findById(id);
 
@@ -315,5 +342,6 @@ module.exports = {
   listInterviewsByUserId,
   startInterview,
   finishInterview,
+  abandonInterview,
   getEvaluationPayload
 };

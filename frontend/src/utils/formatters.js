@@ -25,7 +25,7 @@ const statusLabels = {
   PARTIAL: 'Completada parcialmente',
   READY: 'Lista',
   FAILED: 'No completada',
-  CANCELLED: 'Cancelada',
+  CANCELLED: 'Cerrada',
   FEEDBACK_PENDING: 'Reporte pendiente',
   TECHNICAL: 'Técnica',
   SOFT: 'Comunicación',

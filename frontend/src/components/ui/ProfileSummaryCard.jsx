@@ -12,7 +12,9 @@ export default function ProfileSummaryCard({ profile }) {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-slate-500">Experiencia</p>
-            <p className="mt-1 text-sm text-slate-900">{profile.yearsOfExperience ?? 'Pendiente'} años</p>
+            <p className="mt-1 text-sm text-slate-900">
+              {profile.yearsOfExperience ?? 'Pendiente'}{profile.yearsOfExperience !== null && profile.yearsOfExperience !== undefined ? ' años' : ''}
+            </p>
           </div>
         </div>
         <div>

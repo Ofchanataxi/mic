@@ -15,7 +15,9 @@ import PageHeader from '../../components/ui/PageHeader.jsx';
 import ProgressIndicator from '../../components/ui/ProgressIndicator.jsx';
 import RecordingIndicator from '../../components/ui/RecordingIndicator.jsx';
 import UploadProgress from '../../components/ui/UploadProgress.jsx';
+import { API_BASE_URL } from '../../api/httpClient.js';
 import { getApiErrorMessage } from '../../utils/formatters.js';
+import { getAccessToken } from '../../utils/storage.js';
 import { useAuth } from '../auth/useAuth.js';
 
 const uploadSteps = ['Cerrar respuesta actual', 'Detener grabación', 'Guardar entrevista', 'Finalizar'];
@@ -85,11 +87,17 @@ export default function InterviewSessionPage() {
   const activeQuestionStartRef = useRef(null);
   const intervalRef = useRef(null);
   const finishingRef = useRef(false);
+  const phaseRef = useRef(phase);
+  const interviewStartedRef = useRef(false);
 
   const questions = useMemo(() => interview?.questions || [], [interview]);
   const currentQuestion = questions[currentIndex];
   const currentResponse = currentQuestion ? responses[currentQuestion.questionId] : null;
   const shouldWarnBeforeUnload = ['recording', 'finishing', 'finish-error'].includes(phase);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const relativeNow = useCallback(() => {
     if (!recordingStartedAtRef.current) return 0;
@@ -122,6 +130,32 @@ export default function InterviewSessionPage() {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [shouldWarnBeforeUnload]);
+
+  useEffect(() => {
+    const closeAbandonedInterview = () => {
+      if (!interviewStartedRef.current || finishingRef.current) return;
+      if (!['recording', 'finish-error'].includes(phaseRef.current)) return;
+
+      const token = getAccessToken();
+      if (!token) return;
+
+      fetch(`${API_BASE_URL}/interviews/${encodeURIComponent(id)}/abandon`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    window.addEventListener('pagehide', closeAbandonedInterview);
+    return () => {
+      closeAbandonedInterview();
+      window.removeEventListener('pagehide', closeAbandonedInterview);
+    };
+  }, [id]);
 
   useEffect(() => () => {
     if (intervalRef.current) window.clearInterval(intervalRef.current);
@@ -156,6 +190,7 @@ export default function InterviewSessionPage() {
       setStream(mediaStream);
 
       await interviewApi.startInterview(id);
+      interviewStartedRef.current = true;
 
       chunksRef.current = [];
       const mimeType = chooseMimeType();
@@ -204,17 +239,6 @@ export default function InterviewSessionPage() {
       setCurrentIndex(nextIndex);
       ensureResponseStarted(questions[nextIndex]);
     }
-  };
-
-  const updateAnswer = (answerText) => {
-    if (!currentQuestion) return;
-    setResponses((current) => ({
-      ...current,
-      [currentQuestion.questionId]: {
-        ...(current[currentQuestion.questionId] || buildInitialResponse(currentQuestion, activeQuestionStartRef.current ?? relativeNow())),
-        answerText,
-      },
-    }));
   };
 
   const updateCode = (code) => {
@@ -371,7 +395,6 @@ export default function InterviewSessionPage() {
             <InterviewQuestionCard
               question={currentQuestion}
               response={currentResponse}
-              onAnswerChange={updateAnswer}
               onCodeChange={updateCode}
               onLanguageChange={updateLanguage}
             />

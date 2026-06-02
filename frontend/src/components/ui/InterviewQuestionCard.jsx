@@ -6,7 +6,7 @@ import { formatSkillType } from '../../utils/formatters.js';
 
 const languageOptions = ['javascript', 'python', 'java', 'typescript', 'cpp'];
 
-export default function InterviewQuestionCard({ question, response, onAnswerChange, onCodeChange, onLanguageChange }) {
+export default function InterviewQuestionCard({ question, response, onCodeChange, onLanguageChange }) {
   const isCoding = question.questionType === 'CODING';
   const codeSubmission = response?.codeSubmission || { language: question.language || 'javascript', code: '' };
 
@@ -43,15 +43,9 @@ export default function InterviewQuestionCard({ question, response, onAnswerChan
             />
           </div>
         ) : (
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">Respuesta</span>
-            <textarea
-              className="focus-ring min-h-48 w-full resize-y rounded-md border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-900 placeholder:text-slate-400"
-              value={response?.answerText || ''}
-              onChange={(event) => onAnswerChange(event.target.value)}
-              placeholder="Escribe tu respuesta aquí..."
-            />
-          </label>
+          <div className="rounded-md border border-slate-100 bg-white p-4 text-sm leading-6 text-slate-600">
+            Responde en voz alta. La respuesta se registrará automáticamente mientras la entrevista esté activa.
+          </div>
         )}
       </CardBody>
     </Card>

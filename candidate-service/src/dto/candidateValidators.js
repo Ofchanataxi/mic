@@ -42,6 +42,20 @@ function validateCreateProfileFromCv(body) {
   };
 }
 
+function validateUpdateProfile(body) {
+  const targetRole = optionalString(body.targetRole, "targetRole");
+  const level = optionalLevel(body.level);
+
+  if (targetRole === null && level === null) {
+    throw new ApiError(400, "At least one profile field must be provided");
+  }
+
+  return {
+    targetRole,
+    level
+  };
+}
+
 function validateAdaptiveStrategyQuery(query) {
   const questionCount = Number.parseInt(query.questionCount, 10);
 
@@ -87,6 +101,7 @@ function validatePerformancePayload(body) {
 
 module.exports = {
   validateCreateProfileFromCv,
+  validateUpdateProfile,
   validateAdaptiveStrategyQuery,
   validatePerformancePayload
 };

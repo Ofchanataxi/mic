@@ -17,4 +17,8 @@ export const interviewApi = {
     const { data } = await httpClient.post(`/interviews/${encodeURIComponent(interviewId)}/finish`, payload);
     return data;
   },
+  async abandonInterview(interviewId) {
+    const { data } = await httpClient.post(`/interviews/${encodeURIComponent(interviewId)}/abandon`);
+    return data;
+  },
 };

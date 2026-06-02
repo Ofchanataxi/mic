@@ -6,6 +6,8 @@ import StatusBadge from './StatusBadge.jsx';
 
 export default function HistoryCard({ item }) {
   const hasFeedback = Boolean(item.feedbackReportId || item.feedbackStatus === 'READY');
+  const isClosedWithoutReport = Boolean(item.closedWithoutReport || (item.interviewStatus === 'CANCELLED' && !hasFeedback));
+
   return (
     <Card>
       <CardBody className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
@@ -26,7 +28,7 @@ export default function HistoryCard({ item }) {
             <p className="text-xs font-semibold uppercase text-slate-500">Estados</p>
             <div className="mt-1 flex flex-wrap gap-2">
               <StatusBadge status={item.interviewStatus} />
-              <StatusBadge status={item.feedbackStatus} fallback="FEEDBACK_PENDING" />
+              {!isClosedWithoutReport ? <StatusBadge status={item.feedbackStatus} fallback="FEEDBACK_PENDING" /> : null}
             </div>
           </div>
           <div>
@@ -35,9 +37,15 @@ export default function HistoryCard({ item }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 md:justify-end">
-          <Link to={`/interviews/${item.interviewId}/processing`}>
-            <Button variant="secondary">{hasFeedback ? 'Ver entrevista' : 'Ver avance'}</Button>
-          </Link>
+          {isClosedWithoutReport ? (
+            <span className="inline-flex h-10 items-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-500">
+              Entrevista cerrada
+            </span>
+          ) : (
+            <Link to={`/interviews/${item.interviewId}/processing`}>
+              <Button variant="secondary">{hasFeedback ? 'Ver entrevista' : 'Ver avance'}</Button>
+            </Link>
+          )}
           {hasFeedback ? (
             <Link to={`/interviews/${item.interviewId}/feedback`}>
               <Button>Ver reporte</Button>

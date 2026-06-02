@@ -59,6 +59,19 @@ class ProfileService {
     return profile;
   }
 
+  async updateProfile(userId, payload) {
+    const profile = await candidateRepository.findProfileByUserId(userId);
+
+    if (!profile) {
+      throw new ApiError(404, "Candidate profile not found");
+    }
+
+    return candidateRepository.updateProfileByUserId(userId, {
+      ...(payload.targetRole !== null ? { targetRole: payload.targetRole } : {}),
+      ...(payload.level !== null ? { estimatedSeniority: payload.level } : {})
+    });
+  }
+
   mapTechnicalTopics(topics) {
     const seen = new Set();
 
