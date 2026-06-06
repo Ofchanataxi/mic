@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList } from 'lucide-react';
+import { Clock3, ClipboardList } from 'lucide-react';
 import { candidateApi } from '../../api/candidateApi.js';
 import { interviewApi } from '../../api/interviewApi.js';
 import Alert from '../../components/ui/Alert.jsx';
@@ -18,7 +18,7 @@ export default function NewInterviewPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR', questionCount: 8 });
+  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR' });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -47,8 +47,7 @@ export default function NewInterviewPage() {
   }, []);
 
   const updateField = (event) => {
-    const value = event.target.name === 'questionCount' ? Number(event.target.value) : event.target.value;
-    setForm((current) => ({ ...current, [event.target.name]: value }));
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
     if (event.target.name === 'targetRole' || event.target.name === 'level') {
       setSuccess('');
     }
@@ -101,7 +100,7 @@ export default function NewInterviewPage() {
         candidateProfileId: profile.id,
         targetRole: form.targetRole,
         level: form.level,
-        questionCount: form.questionCount,
+        questionCount: 8,
       });
       navigate(`/interviews/${result.interviewId}/session`);
     } catch (apiError) {
@@ -114,7 +113,6 @@ export default function NewInterviewPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Entrevista"
         title="Nueva entrevista"
         description="Configura la entrevista. Al crearla irás a una sesión con cámara, grabación continua y preguntas adaptadas a tu perfil."
       />
@@ -165,16 +163,26 @@ export default function NewInterviewPage() {
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </Button>
 
-            <Input
-              id="questionCount"
-              name="questionCount"
-              label="Cantidad de preguntas"
-              type="number"
-              min="5"
-              max="12"
-              value={form.questionCount}
-              onChange={updateField}
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <ClipboardList className="h-4 w-4 text-brand-600" />
+                  8 preguntas
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  3 técnicas, 3 blandas y 2 ejercicios de código.
+                </p>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <Clock3 className="h-4 w-4 text-brand-600" />
+                  Duración máxima
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Dispondrás de hasta 30 minutos para completar la entrevista.
+                </p>
+              </div>
+            </div>
             <Button type="submit" disabled={loading || !profile}>
               <ClipboardList className="h-4 w-4" />
               {loading ? 'Creando...' : 'Crear entrevista'}

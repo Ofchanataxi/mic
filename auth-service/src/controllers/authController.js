@@ -5,6 +5,7 @@ const prisma = require('../config/prisma');
 const asyncHandler = require('../utils/asyncHandler');
 const { toPublicUser } = require('../dto/authDto');
 const { AppError } = require('../middlewares/errorMiddleware');
+const accountActionService = require('../services/accountActionService');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,6 +73,38 @@ const refresh = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const verifyEmail = asyncHandler(async (req, res) => {
+  if (!req.body?.token || typeof req.body.token !== 'string') {
+    throw new AppError('token is required', 400, 'VALIDATION_ERROR');
+  }
+  await accountActionService.verifyEmail(req.body.token);
+  res.json({ message: 'Email verified successfully' });
+});
+
+const resendVerification = asyncHandler(async (req, res) => {
+  validateEmail(req.body?.email);
+  await accountActionService.resendVerification(req.body.email);
+  res.json({ message: 'If verification is pending, a new email has been sent.' });
+});
+
+const forgotPassword = asyncHandler(async (req, res) => {
+  validateEmail(req.body?.email);
+  await accountActionService.requestPasswordReset(req.body.email);
+  res.json({ message: 'If the account exists, password recovery instructions have been sent.' });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  if (!req.body?.token || typeof req.body.token !== 'string') {
+    throw new AppError('token is required', 400, 'VALIDATION_ERROR');
+  }
+  validatePassword(req.body?.password);
+  await accountActionService.resetPassword({
+    token: req.body.token,
+    password: req.body.password,
+  });
+  res.json({ message: 'Password updated successfully' });
+});
+
 const logout = asyncHandler(async (req, res) => {
   await authService.logout({ refreshToken: req.body?.refreshToken });
   res.json({ message: 'Logged out successfully' });
@@ -112,6 +145,10 @@ module.exports = {
   register,
   login,
   refresh,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword,
   logout,
   me,
   createAdminUser,

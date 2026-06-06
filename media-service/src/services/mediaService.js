@@ -118,6 +118,10 @@ class MediaService {
       throw new ApiError(409, "Media is not ready for access");
     }
 
+    if (typeof storageProvider.fileExists === "function" && !(await storageProvider.fileExists(media.storageKey))) {
+      throw new ApiError(410, "Media file is no longer available");
+    }
+
     return {
       mediaId: media.id,
       status: media.status,
@@ -132,6 +136,10 @@ class MediaService {
 
     if (media.status !== MediaStatus.READY || !media.storageKey) {
       throw new ApiError(409, "Media is not ready for streaming");
+    }
+
+    if (typeof storageProvider.fileExists === "function" && !(await storageProvider.fileExists(media.storageKey))) {
+      throw new ApiError(410, "Media file is no longer available");
     }
 
     const size = Number(media.sizeBytes || 0);

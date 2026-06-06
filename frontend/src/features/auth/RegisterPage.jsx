@@ -24,7 +24,7 @@ export default function RegisterPage() {
     setError('');
     try {
       await register(form);
-      navigate('/inicio', { replace: true });
+      navigate(`/verify-email-sent?email=${encodeURIComponent(form.email)}`, { replace: true });
     } catch (apiError) {
       setError(getApiErrorMessage(apiError));
     } finally {

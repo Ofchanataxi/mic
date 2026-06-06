@@ -20,7 +20,7 @@ export default function MonacoCodeEditor({ language = 'javascript', value, onCha
         height="360px"
         language={normalizedLanguage}
         value={value}
-        theme="vs-light"
+        theme="vs-dark"
         onChange={(nextValue) => onChange(nextValue || '')}
         options={{
           minimap: { enabled: false },

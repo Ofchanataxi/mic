@@ -80,8 +80,8 @@ async function generateQuestion({ planItem, targetRole, level, attemptNumber }) 
     throw new ApiError(502, "OpenAI returned an invalid questionType", parsed);
   }
 
-  if (preferredQuestionType === "CODING") {
-    parsed.questionType = "CODING";
+  if (planItem.forcedQuestionType) {
+    parsed.questionType = preferredQuestionType;
   }
 
   if (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "") {

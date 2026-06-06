@@ -1,4 +1,4 @@
-# MIC Frontend
+# CCInterview Frontend
 
 Base funcional del frontend React para la plataforma de entrevistas tecnicas multimodales.
 

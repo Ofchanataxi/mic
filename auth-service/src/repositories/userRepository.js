@@ -27,6 +27,16 @@ const updateStatus = (id, status) => prisma.user.update({
   data: { status },
 });
 
+const markEmailVerified = (id) => prisma.user.update({
+  where: { id },
+  data: { emailVerifiedAt: new Date() },
+});
+
+const updatePassword = (id, passwordHash) => prisma.user.update({
+  where: { id },
+  data: { passwordHash },
+});
+
 module.exports = {
   findByEmail,
   findById,
@@ -35,4 +45,6 @@ module.exports = {
   countAdmins,
   listUsers,
   updateStatus,
+  markEmailVerified,
+  updatePassword,
 };

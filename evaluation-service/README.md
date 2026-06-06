@@ -1,6 +1,6 @@
 # evaluation-service
 
-`evaluation-service` procesa entrevistas finalizadas de MIC de forma asincrona. Recibe un `interviewId`, encola el trabajo con Redis + BullMQ, descarga el video completo desde `media-service`, corta audio por pregunta con FFmpeg, transcribe cada segmento con OpenAI, evalua la respuesta, ejecuta codigo con Judge0 y deja resultados estructurados para `feedback-service`.
+`evaluation-service` procesa entrevistas finalizadas de CCInterview de forma asincrona. Recibe un `interviewId`, encola el trabajo con Redis + BullMQ, descarga el video completo desde `media-service`, corta audio por pregunta con FFmpeg, transcribe cada segmento con OpenAI, evalua la respuesta, ejecuta codigo con Judge0 y deja resultados estructurados para `feedback-service`.
 
 ## Flujo
 
@@ -12,7 +12,7 @@
 6. Extrae un audio por pregunta en `segments/question-N.mp3`.
 7. Transcribe con `OPENAI_TRANSCRIPTION_MODEL`.
 8. Evalua semantica con `OPENAI_MODEL` y JSON estricto.
-9. Calcula audio heuristico, video MVP extensible y codigo real con Judge0.
+9. Calcula el desenvolvimiento oral, analiza señales visuales y ejecuta código con Judge0.
 10. Guarda `QuestionEvaluation`, agregados globales e intenta actualizar `candidate-service` y notificar `feedback-service`.
 11. Limpia temporales y marca el job `COMPLETED` o `FAILED`.
 
@@ -226,7 +226,7 @@ Comportamiento:
 - Guarda `simulated=false` y `rawData.status = "JUDGE0_EXECUTED"`.
 - Si `expectedOutput` existe, compara `stdout` contra ese valor normalizado.
 
-## Video analysis MVP
+## Análisis de video
 
 No se inventa contacto visual, postura ni comportamiento facial. El provider retorna scores `null` y `rawData.status = "VIDEO_MODEL_NOT_CONFIGURED"`. El orquestador ignora `videoScore=null`.
 

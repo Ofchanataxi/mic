@@ -4,6 +4,10 @@ import ProtectedRoute from '../features/auth/ProtectedRoute.jsx';
 import PublicRoute from '../features/auth/PublicRoute.jsx';
 import LoginPage from '../features/auth/LoginPage.jsx';
 import RegisterPage from '../features/auth/RegisterPage.jsx';
+import VerifyEmailSentPage from '../features/auth/VerifyEmailSentPage.jsx';
+import VerifyEmailPage from '../features/auth/VerifyEmailPage.jsx';
+import ForgotPasswordPage from '../features/auth/ForgotPasswordPage.jsx';
+import ResetPasswordPage from '../features/auth/ResetPasswordPage.jsx';
 import DashboardPage from '../features/dashboard/DashboardPage.jsx';
 import ProfilePage from '../features/candidate/ProfilePage.jsx';
 import CvPage from '../features/candidate/CvPage.jsx';
@@ -26,6 +30,10 @@ export function RouterProvider() {
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email-sent" element={<VerifyEmailSentPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>

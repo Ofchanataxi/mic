@@ -1,4 +1,5 @@
 const evaluationJobService = require('../services/evaluationJobService');
+const judge0Client = require('../clients/judge0Client');
 const asyncHandler = require('../utils/asyncHandler');
 const { AppError } = require('../middlewares/errorMiddleware');
 
@@ -9,6 +10,11 @@ const health = (req, res) => {
     timestamp: new Date().toISOString(),
   });
 };
+
+const getJudge0Languages = asyncHandler(async (req, res) => {
+  const languages = await judge0Client.getLanguages();
+  res.json({ languages });
+});
 
 const processInterview = asyncHandler(async (req, res) => {
   const { interviewId, userId } = req.body || {};
@@ -126,6 +132,7 @@ const retryInterview = asyncHandler(async (req, res) => {
 
 module.exports = {
   health,
+  getJudge0Languages,
   processInterview,
   enqueueInterviewEvaluation,
   getJobStatus,

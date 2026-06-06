@@ -14,7 +14,7 @@ export default function Sidebar() {
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
       <div className="flex h-16 items-center border-b border-slate-100 px-6">
         <div>
-          <p className="text-lg font-bold text-slate-950">MIC Interviews</p>
+          <p className="text-lg font-bold text-slate-950">CCInterview</p>
         </div>
       </div>
       <nav className="space-y-1 p-4">

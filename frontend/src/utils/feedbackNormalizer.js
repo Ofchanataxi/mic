@@ -45,6 +45,7 @@ const normalizeQuestion = ({ feedbackQuestion = {}, evaluationQuestion = {} }) =
     topic: firstDefined(feedbackQuestion.topic, feedbackQuestion.topicName, evaluationQuestion.topic, evaluationQuestion.topicName),
     subtopic: firstDefined(feedbackQuestion.subtopic, feedbackQuestion.subtopicName, evaluationQuestion.subtopic, evaluationQuestion.subtopicName),
     questionText: firstDefined(feedbackQuestion.questionText, evaluationQuestion.questionText, ''),
+    summary: firstDefined(feedbackQuestion.summary, ''),
     answerText: firstDefined(feedbackQuestion.answerText, evaluationQuestion.answerText, ''),
     transcription: firstDefined(feedbackQuestion.transcription, evaluationQuestion.transcription, ''),
     startTimeMs: asScore(firstDefined(feedbackQuestion.startTimeMs, evaluationQuestion.startTimeMs)),

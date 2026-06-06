@@ -84,6 +84,15 @@ class GcsStorageProvider {
     return this.bucketName;
   }
 
+  async fileExists(storageKey) {
+    const metadataUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}`;
+    const response = await fetch(metadataUrl);
+
+    if (response.ok) return true;
+    if (response.status === 404) return false;
+    throw await this.buildRequestError(response, "Failed to check file existence");
+  }
+
   async streamFile(storageKey, writableStream) {
     const fileUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}?alt=media`;
     const response = await fetch(fileUrl);

@@ -9,6 +9,10 @@ router.get('/health', authController.health);
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/refresh', authController.refresh);
+router.post('/auth/verify-email', authController.verifyEmail);
+router.post('/auth/resend-verification', authController.resendVerification);
+router.post('/auth/forgot-password', authController.forgotPassword);
+router.post('/auth/reset-password', authController.resetPassword);
 router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.me);
 

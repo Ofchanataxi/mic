@@ -10,7 +10,9 @@ const buildProxyHeaders = (req) => {
   if (req.user?.userId) headers['x-user-id'] = req.user.userId;
   if (req.user?.role) headers['x-user-role'] = req.user.role;
   if (req.user?.email) headers['x-user-email'] = req.user.email;
-  if (req.header('x-internal-service-token')) {
+  if (env.internalServiceToken) {
+    headers['x-internal-service-token'] = env.internalServiceToken;
+  } else if (req.header('x-internal-service-token')) {
     headers['x-internal-service-token'] = req.header('x-internal-service-token');
   }
 

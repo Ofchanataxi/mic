@@ -181,7 +181,11 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
       transcription,
       codeSubmission: question.codeSubmission,
     });
-    const audio = audioAnalysisService.analyzeAudio({ transcription, durationMs });
+    const audio = await audioAnalysisService.analyzeAudio({
+      audioPath,
+      transcription,
+      durationMs,
+    });
     const video = await videoAnalysisService.analyzeVideo({
       videoSegmentPath,
       startTimeMs: question.startTimeMs,

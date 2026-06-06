@@ -90,44 +90,38 @@ function assertPlanMatchesRequest(plan, input) {
   }
 }
 
-function requiredCodingQuestions(questionCount) {
-  if (questionCount >= 9) {
-    return env.minCodingQuestionsLargeInterview;
-  }
-  if (questionCount >= 5) {
-    return env.minCodingQuestionsSmallInterview;
-  }
-  return 0;
-}
+function buildFixedInterviewPlan(evaluationPlan) {
+  const technical = evaluationPlan.filter((item) => item.skillType === "TECHNICAL");
+  const soft = evaluationPlan.filter((item) => item.skillType === "SOFT");
 
-function applyCodingQuestionQuota(evaluationPlan, questionCount) {
-  const plan = evaluationPlan.slice(0, questionCount).map((item) => ({ ...item }));
-  const requiredCount = Math.min(
-    requiredCodingQuestions(questionCount),
-    plan.filter((item) => item.skillType !== "SOFT").length
+  if (technical.length === 0 || soft.length === 0) {
+    throw new ApiError(422, "Candidate profile does not provide topics for the required interview structure", {
+      required: { technical: 1, soft: 1 },
+      available: { technical: technical.length, soft: soft.length }
+    });
+  }
+
+  const takeWithReuse = (items, count) => Array.from(
+    { length: count },
+    (_, index) => ({ ...items[index % items.length] })
   );
+  const selectedTechnical = takeWithReuse(technical, 5);
+  const selectedSoft = takeWithReuse(soft, 3);
 
-  if (requiredCount <= 0) {
-    return plan;
-  }
-
-  const alreadyCoding = plan.filter((item) => item.forcedQuestionType === "CODING").length;
-  let remaining = requiredCount - alreadyCoding;
-
-  for (let index = plan.length - 1; index >= 0 && remaining > 0; index -= 1) {
-    if (plan[index].skillType === "SOFT" || plan[index].forcedQuestionType === "CODING") {
-      continue;
-    }
-
-    plan[index] = {
-      ...plan[index],
-      forcedQuestionType: "CODING",
-      reason: `${plan[index].reason || "Coverage balance"} / coding quota`
-    };
-    remaining -= 1;
-  }
-
-  return plan;
+  return [
+    ...selectedTechnical.slice(0, 3).map((item) => ({
+      ...item,
+      forcedQuestionType: "TECHNICAL"
+    })),
+    ...selectedSoft.map((item) => ({
+      ...item,
+      forcedQuestionType: "SOFT_SKILL"
+    })),
+    ...selectedTechnical.slice(3, 5).map((item) => ({
+      ...item,
+      forcedQuestionType: "CODING"
+    }))
+  ];
 }
 
 async function createInterview(input) {
@@ -140,7 +134,7 @@ async function createInterview(input) {
 
   assertPlanMatchesRequest(adaptiveStrategy, input);
 
-  const evaluationPlan = applyCodingQuestionQuota(adaptiveStrategy.evaluationPlan, input.questionCount);
+  const evaluationPlan = buildFixedInterviewPlan(adaptiveStrategy.evaluationPlan);
   const questions = await questionGenerationService.generateQuestionsForPlan({
     userId: input.userId,
     targetRole: input.targetRole || adaptiveStrategy.targetRole,

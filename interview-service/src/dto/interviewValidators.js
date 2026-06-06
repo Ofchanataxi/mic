@@ -1,7 +1,7 @@
 const { ApiError } = require("../utils/apiError");
-const { env } = require("../config/env");
 
 const SENIORITY_LEVELS = new Set(["JUNIOR", "MID", "SENIOR"]);
+const MAX_INTERVIEW_DURATION_MS = 30 * 60 * 1000;
 
 function assertString(value, fieldName, required = true) {
   if ((value === undefined || value === null || value === "") && !required) {
@@ -36,15 +36,15 @@ function validateCreateInterview(body) {
   }
 
   const questionCount = body.questionCount === undefined || body.questionCount === null
-    ? env.defaultQuestionCount
+    ? 8
     : Number.parseInt(body.questionCount, 10);
 
   if (!Number.isInteger(questionCount)) {
     throw new ApiError(400, "questionCount must be an integer");
   }
 
-  if (questionCount < env.minQuestionCount || questionCount > env.maxQuestionCount) {
-    throw new ApiError(400, `questionCount must be between ${env.minQuestionCount} and ${env.maxQuestionCount}`);
+  if (questionCount !== 8) {
+    throw new ApiError(400, "Interviews must contain exactly 8 questions");
   }
 
   return {
@@ -75,6 +75,10 @@ function validateFinishInterview(body) {
 
     if (!Number.isInteger(videoEndMs) || videoEndMs < videoStartMs) {
       throw new ApiError(400, `responses[${index}].videoEndMs must be greater than or equal to videoStartMs`);
+    }
+
+    if (videoStartMs > MAX_INTERVIEW_DURATION_MS || videoEndMs > MAX_INTERVIEW_DURATION_MS) {
+      throw new ApiError(400, `responses[${index}] exceeds the maximum interview duration of 30 minutes`);
     }
 
     let codeSubmission = null;

@@ -17,8 +17,14 @@ const revoke = (id, replacedByTokenId = null) => prisma.refreshToken.update({
   },
 });
 
+const revokeAllForUser = (userId) => prisma.refreshToken.updateMany({
+  where: { userId, revokedAt: null },
+  data: { revokedAt: new Date() },
+});
+
 module.exports = {
   create,
   findByHash,
   revoke,
+  revokeAllForUser,
 };

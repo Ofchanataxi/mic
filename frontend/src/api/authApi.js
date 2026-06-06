@@ -9,6 +9,22 @@ export const authApi = {
     const { data } = await httpClient.post('/auth/register', payload);
     return data;
   },
+  async verifyEmail(token) {
+    const { data } = await httpClient.post('/auth/verify-email', { token });
+    return data;
+  },
+  async resendVerification(email) {
+    const { data } = await httpClient.post('/auth/resend-verification', { email });
+    return data;
+  },
+  async forgotPassword(email) {
+    const { data } = await httpClient.post('/auth/forgot-password', { email });
+    return data;
+  },
+  async resetPassword({ token, password }) {
+    const { data } = await httpClient.post('/auth/reset-password', { token, password });
+    return data;
+  },
   async refresh(refreshToken) {
     const { data } = await httpClient.post('/auth/refresh', { refreshToken });
     return data;

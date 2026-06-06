@@ -43,6 +43,15 @@ export function formatSkillType(value) {
 }
 
 export function getApiErrorMessage(error) {
+  const code = error?.response?.data?.error?.code;
+  const messagesByCode = {
+    EMAIL_NOT_VERIFIED: 'Debes verificar tu correo antes de ingresar.',
+    INVALID_VERIFICATION_TOKEN: 'El enlace de verificación no es válido o ya venció.',
+    INVALID_PASSWORD_RESET_TOKEN: 'El enlace de recuperación no es válido o ya venció.',
+    EMAIL_ALREADY_EXISTS: 'Ya existe una cuenta registrada con este correo.',
+  };
+  if (messagesByCode[code]) return messagesByCode[code];
+
   const message = error?.response?.data?.error?.message
     || error?.response?.data?.message
     || error?.message

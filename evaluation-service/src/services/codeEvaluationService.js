@@ -1,5 +1,6 @@
 const { clampScore } = require('../utils/scoreUtils');
 const judge0Client = require('../clients/judge0Client');
+const { containsInjectionAttempt } = require('./semanticEvaluationService');
 
 const normalizeOutput = (value) => String(value || '').trim().replace(/\r\n/g, '\n');
 
@@ -10,14 +11,15 @@ const scoreJudge0Result = ({ result, expectedOutput }) => {
   const hasExpectedOutput = expectedOutput !== undefined && expectedOutput !== null && expectedOutput !== '';
   const outputMatches = hasExpectedOutput
     ? normalizeOutput(result.stdout) === normalizeOutput(expectedOutput)
-    : accepted;
+    : null;
 
   let score = 0;
-  if (accepted && outputMatches) score = 100;
-  else if (accepted) score = 70;
-  else if ([6, 7].includes(statusId)) score = 20;
-  else if ([4, 5].includes(statusId)) score = 35;
-  else score = 25;
+  if (accepted && hasExpectedOutput && outputMatches) score = 100;
+  else if (accepted && hasExpectedOutput) score = 20;
+  else if (accepted) score = 40;
+  else if ([6, 7].includes(statusId)) score = 5;
+  else if ([4, 5].includes(statusId)) score = 10;
+  else score = 5;
 
   return {
     codeScore: clampScore(score),
@@ -41,7 +43,7 @@ const scoreJudge0Result = ({ result, expectedOutput }) => {
 };
 
 const judge0FailureResult = (error) => ({
-  codeScore: 30,
+  codeScore: null,
   passedTests: 0,
   totalTests: 1,
   compilationStatus: 'JUDGE0_REQUEST_FAILED',
@@ -93,6 +95,7 @@ const evaluateCode = async ({ skillType, codeSubmission }) => {
     };
   }
 
+  const injectionDetected = containsInjectionAttempt(codeSubmission.sourceCode);
   let result;
   try {
     result = await judge0Client.submitCode({
@@ -105,10 +108,21 @@ const evaluateCode = async ({ skillType, codeSubmission }) => {
     return judge0FailureResult(error);
   }
 
-  return scoreJudge0Result({
+  const evaluated = scoreJudge0Result({
     result,
     expectedOutput: codeSubmission.expectedOutput,
   });
+  if (!injectionDetected) return evaluated;
+
+  return {
+    ...evaluated,
+    codeScore: Math.min(evaluated.codeScore, 10),
+    rawData: {
+      ...evaluated.rawData,
+      status: 'MANIPULATION_ATTEMPT_DETECTED',
+      notes: 'The submission contains text intended to influence grading rather than solve the exercise.',
+    },
+  };
 };
 
 module.exports = {
