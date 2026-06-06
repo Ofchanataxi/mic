@@ -24,7 +24,7 @@ export default function RegisterPage() {
     setError('');
     try {
       await register(form);
-      navigate('/dashboard', { replace: true });
+      navigate('/inicio', { replace: true });
     } catch (apiError) {
       setError(getApiErrorMessage(apiError));
     } finally {

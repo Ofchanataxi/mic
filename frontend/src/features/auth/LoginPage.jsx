@@ -24,7 +24,7 @@ export default function LoginPage() {
     setError('');
     try {
       await login(form);
-      navigate('/dashboard', { replace: true });
+      navigate('/inicio', { replace: true });
     } catch (apiError) {
       setError(getApiErrorMessage(apiError));
     } finally {

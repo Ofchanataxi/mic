@@ -3,5 +3,5 @@ import { useAuth } from './useAuth.js';
 
 export default function PublicRoute() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  return isAuthenticated ? <Navigate to="/inicio" replace /> : <Outlet />;
 }

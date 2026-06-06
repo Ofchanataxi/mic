@@ -57,7 +57,7 @@ Publicas:
 
 Privadas:
 
-- `/dashboard`
+- `/inicio`
 - `/profile`
 - `/cv`
 - `/interviews/new`
@@ -326,7 +326,7 @@ Muestra fecha, rol, nivel, estados, score global y acciones:
 - Cliente HTTP centralizado hacia API Gateway.
 - API clients por dominio.
 - Login y registro.
-- Dashboard inicial.
+- Página de inicio.
 - Perfil con consumo de `/api/v1/me/profile` y `/api/v1/me/topics`.
 - Carga real de CV PDF usando API Gateway.
 - Creacion real de perfil.
@@ -353,7 +353,7 @@ Muestra fecha, rol, nivel, estados, score global y acciones:
 ## Pendiente para fase 3
 
 - Historial enriquecido.
-- Dashboard final.
+- Página de inicio final.
 - Reproduccion con marcadores visuales por pregunta.
 - Mejoras de accesibilidad y responsive fino para pantallas pequenas.
 - Mejoras de seguridad para almacenamiento de tokens.

@@ -6,14 +6,11 @@ const asyncHandler = (handler) => (req, res, next) => Promise.resolve(handler(re
 const getUserId = (req) => req.user?.userId || req.user?.id;
 
 const getMe = asyncHandler(async (req, res) => {
-  res.json({
-    user: {
-      id: req.user.id,
-      userId: req.user.userId,
-      email: req.user.email,
-      role: req.user.role,
-    },
+  const authData = await requestService(req, {
+    baseURL: env.authServiceUrl,
+    url: '/auth/me',
   });
+  res.json(authData);
 });
 
 const getProfile = asyncHandler(async (req, res) => {

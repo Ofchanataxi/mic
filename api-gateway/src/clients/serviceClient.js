@@ -10,6 +10,7 @@ const buildHeaders = (req) => {
     headers['x-internal-service-token'] = env.internalServiceToken;
   }
 
+  if (req.headers.authorization) headers.authorization = req.headers.authorization;
   if (req.user?.userId) headers['x-user-id'] = req.user.userId;
   if (req.user?.role) headers['x-user-role'] = req.user.role;
   if (req.user?.email) headers['x-user-email'] = req.user.email;

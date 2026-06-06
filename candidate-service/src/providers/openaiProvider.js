@@ -29,7 +29,8 @@ const candidateProfileSchema = {
     technicalDomains: { type: "array", items: { type: "string" } },
     topics: {
       type: "array",
-      minItems: 1,
+      minItems: 3,
+      maxItems: 8,
       items: {
         type: "object",
         additionalProperties: false,
@@ -43,7 +44,8 @@ const candidateProfileSchema = {
           evidence: { type: ["string", "null"] },
           subtopics: {
             type: "array",
-            minItems: 1,
+            minItems: 2,
+            maxItems: 5,
             items: {
               type: "object",
               additionalProperties: false,
@@ -92,37 +94,25 @@ class OpenAiProvider {
         purpose: "user_data"
       });
 
-      const response = await client.responses.create({
-        model: env.openAiModel,
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: this.buildPrompt({ targetRole, level })
-              },
-              {
-                type: "input_file",
-                file_id: uploadedFile.id
-              }
-            ]
-          }
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "candidate_cv_profile",
-            strict: true,
-            schema: candidateProfileSchema
-          }
-        }
+      const firstProfile = await this.requestStructuredProfile(client, {
+        fileId: uploadedFile.id,
+        targetRole,
+        level,
+        recovery: false
       });
+      const qualityIssues = this.getTaxonomyIssues(firstProfile);
 
-      const outputText = this.extractOutputText(response);
-      const parsed = JSON.parse(outputText);
-      this.validateStructuredProfile(parsed);
-      return parsed;
+      if (qualityIssues.length === 0) {
+        return firstProfile;
+      }
+
+      return this.requestStructuredProfile(client, {
+        fileId: uploadedFile.id,
+        targetRole,
+        level,
+        recovery: true,
+        qualityIssues
+      });
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -140,15 +130,58 @@ class OpenAiProvider {
     }
   }
 
-  buildPrompt({ targetRole, level }) {
+  async requestStructuredProfile(client, { fileId, targetRole, level, recovery, qualityIssues = [] }) {
+    const response = await client.responses.create({
+      model: env.openAiModel,
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: this.buildPrompt({ targetRole, level, recovery, qualityIssues })
+            },
+            {
+              type: "input_file",
+              file_id: fileId
+            }
+          ]
+        }
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "candidate_cv_profile",
+          strict: true,
+          schema: candidateProfileSchema
+        }
+      }
+    });
+
+    const parsed = JSON.parse(this.extractOutputText(response));
+    this.validateStructuredProfile(parsed);
+    return parsed;
+  }
+
+  buildPrompt({ targetRole, level, recovery = false, qualityIssues = [] }) {
     return [
       "Analiza este CV en PDF y devuelve exclusivamente JSON valido segun el schema solicitado.",
       "Objetivo: crear un perfil estructurado para planificar una entrevista tecnica adaptativa.",
       targetRole ? `Rol objetivo indicado por el sistema: ${targetRole}.` : "No hay rol objetivo indicado por el sistema.",
       level ? `Nivel indicado por el sistema: ${level}.` : "No hay nivel indicado por el sistema.",
+      recovery
+        ? `Este es un segundo intento porque la taxonomia anterior fue demasiado general: ${qualityIssues.join("; ")}. Corrige esos problemas.`
+        : "Construye una taxonomia tecnica concreta desde el primer intento.",
       "Reglas:",
       "- No inventes experiencia no sustentada por el CV.",
-      "- Si una tecnologia aparece de forma general, puedes proponer subtematicas evaluables basicas o intermedias coherentes con el seniority.",
+      "- Genera entre 3 y 8 topics tecnicos. Cada topic debe ser una tecnologia concreta: lenguaje, framework, runtime, base de datos, plataforma o herramienta.",
+      "- Ejemplos validos de topic: Python, Node.js, Java, React, PostgreSQL, Docker y AWS.",
+      "- No uses como topic categorias generales como Desarrollo de software, Programacion, Backend, Frontend, Bases de datos, Tecnologias o Ingenieria de software.",
+      "- Cada topic debe contener entre 2 y 5 subtopics pequenos, concretos y evaluables sobre esa tecnologia.",
+      "- Ejemplo: topic Node.js; subtopics event loop, asincronia con Promises, streams y manejo de errores.",
+      "- No repitas una tecnologia con nombres equivalentes ni agrupes varias tecnologias en un mismo topic.",
+      "- Si el CV es corto, pobre o no enumera suficientes tecnologias, infiere un conjunto minimo de 3 topics coherentes con proyectos, estudios, experiencia o rol sugerido.",
+      "- Todo topic inferido debe usar source LLM_INFERRED y no debe presentarse como experiencia comprobada.",
       "- Usa source CV_EXPLICIT cuando la evidencia aparece directamente en el CV.",
       "- Usa source LLM_INFERRED cuando la subtematica es una inferencia razonable desde tecnologias, rol o seniority.",
       "- No generes habilidades blandas; el sistema las crea desde catalogo fijo.",
@@ -184,6 +217,50 @@ class OpenAiProvider {
     if (!profile || !Array.isArray(profile.topics) || profile.topics.length === 0) {
       throw new ApiError(502, "OpenAI response has an invalid candidate profile format");
     }
+  }
+
+  getTaxonomyIssues(profile) {
+    const genericNames = new Set([
+      "desarrollo-de-software",
+      "ingenieria-de-software",
+      "programacion",
+      "desarrollo-backend",
+      "backend",
+      "desarrollo-frontend",
+      "frontend",
+      "bases-de-datos",
+      "tecnologias",
+      "herramientas",
+      "desarrollo-web"
+    ]);
+    const normalize = (value) => String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const issues = [];
+
+    if (profile.topics.length < 3) {
+      issues.push("se generaron menos de 3 topics tecnicos");
+    }
+
+    const genericTopics = profile.topics
+      .filter((topic) => genericNames.has(normalize(topic.name)))
+      .map((topic) => topic.name);
+    if (genericTopics.length > 0) {
+      issues.push(`topics demasiado generales: ${genericTopics.join(", ")}`);
+    }
+
+    const incompleteTopics = profile.topics
+      .filter((topic) => !Array.isArray(topic.subtopics) || topic.subtopics.length < 2)
+      .map((topic) => topic.name);
+    if (incompleteTopics.length > 0) {
+      issues.push(`topics sin suficientes subtopics: ${incompleteTopics.join(", ")}`);
+    }
+
+    return issues;
   }
 }
 

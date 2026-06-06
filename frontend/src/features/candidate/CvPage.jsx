@@ -1,39 +1,60 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { candidateApi } from '../../api/candidateApi.js';
 import { mediaApi } from '../../api/mediaApi.js';
 import Alert from '../../components/ui/Alert.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Card, { CardBody, CardHeader } from '../../components/ui/Card.jsx';
 import FileUploadCard from '../../components/ui/FileUploadCard.jsx';
-import Input from '../../components/ui/Input.jsx';
 import PageHeader from '../../components/ui/PageHeader.jsx';
-import ProfileSummaryCard from '../../components/ui/ProfileSummaryCard.jsx';
-import Select from '../../components/ui/Select.jsx';
 import UploadProgress from '../../components/ui/UploadProgress.jsx';
 import { getApiErrorMessage } from '../../utils/formatters.js';
 import { useAuth } from '../auth/useAuth.js';
 
-const steps = ['Subir CV', 'Crear perfil', 'Preparar entrevista'];
+const steps = ['Subir CV', 'Crear perfil', 'Revisar perfil'];
+const PDF_MIME_TYPE = 'application/pdf';
+
+function isPdfFile(file) {
+  if (!file) return false;
+  return file.type === PDF_MIME_TYPE && file.name.toLowerCase().endsWith('.pdf');
+}
 
 export default function CvPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [file, setFile] = useState(null);
-  const [targetRole, setTargetRole] = useState('');
-  const [level, setLevel] = useState('');
-  const [editHints, setEditHints] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [profile, setProfile] = useState(null);
+
+  const handleFileChange = (selectedFile) => {
+    setError('');
+
+    if (!selectedFile) {
+      setFile(null);
+      return true;
+    }
+
+    if (!isPdfFile(selectedFile)) {
+      setFile(null);
+      setError('Selecciona un archivo PDF válido.');
+      return false;
+    }
+
+    setFile(selectedFile);
+    return true;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!file) return;
+
+    if (!isPdfFile(file)) {
+      setError('Selecciona un archivo PDF válido.');
+      return;
+    }
 
     setLoading(true);
     setError('');
-    setProfile(null);
     setActiveStep(0);
 
     try {
@@ -44,14 +65,13 @@ export default function CvPage() {
       });
       setActiveStep(1);
 
-      const createdProfile = await candidateApi.createProfileFromCv({
+      await candidateApi.createProfileFromCv({
         userId: user.userId || user.id,
         mediaId: media.mediaId,
-        targetRole: editHints && targetRole ? targetRole : undefined,
-        level: editHints && level ? level : undefined,
       });
+
       setActiveStep(3);
-      setProfile(createdProfile);
+      navigate('/profile', { replace: true });
     } catch (apiError) {
       setError(getApiErrorMessage(apiError));
     } finally {
@@ -62,72 +82,39 @@ export default function CvPage() {
   return (
     <>
       <PageHeader
-        eyebrow="CV"
-        title="Carga de CV"
-        description="Sube tu CV en PDF para preparar tu perfil y personalizar tus entrevistas."
+        title="Carga de Curriculum Vitae"
+        description="Sube tu Curriculum Vitae en PDF para preparar tu perfil y personalizar tus entrevistas."
       />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
         <FileUploadCard
-          title="Nuevo perfil desde CV"
-          description="Selecciona tu CV y completa los datos principales de tu búsqueda."
-          accept="application/pdf"
+          title="Subir Curriculum Vitae"
+          description="Selecciona el archivo PDF que utilizaremos para preparar tu perfil."
+          accept={PDF_MIME_TYPE}
           file={file}
-          onFileChange={setFile}
+          onFileChange={handleFileChange}
         >
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error ? <Alert tone="error">{error}</Alert> : null}
             <Alert tone="info">
-              El rol objetivo y el nivel se inferirán desde tu CV. Puedes ajustarlos manualmente si lo necesitas.
+              El puesto objetivo y el nivel se inferirán desde tu Curriculum Vitae. Podrás editarlos antes de iniciar una entrevista.
             </Alert>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-brand-600"
-                checked={editHints}
-                onChange={(event) => setEditHints(event.target.checked)}
-              />
-              Editar rol y nivel manualmente
-            </label>
-            {editHints ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input id="targetRole" label="Rol objetivo" value={targetRole} onChange={(event) => setTargetRole(event.target.value)} placeholder="Backend Developer" />
-                <Select id="level" label="Nivel" value={level} onChange={(event) => setLevel(event.target.value)}>
-                  <option value="">Inferir desde el CV</option>
-                  <option value="JUNIOR">Junior</option>
-                  <option value="MID">Mid</option>
-                  <option value="SENIOR">Senior</option>
-                </Select>
-              </div>
-            ) : null}
             <Button type="submit" disabled={!file || loading}>
-              {loading ? 'Procesando CV...' : 'Subir y crear perfil'}
+              {loading ? 'Procesando Curriculum Vitae...' : 'Subir y crear perfil'}
             </Button>
           </form>
         </FileUploadCard>
 
         <Card>
-          <CardHeader title="Progreso" description={loading ? 'Estamos preparando tu perfil.' : 'Listo para cargar un CV.'} />
+          <CardHeader title="Progreso" description={loading ? 'Estamos preparando tu perfil.' : 'Listo para cargar tu Curriculum Vitae.'} />
           <CardBody className="space-y-5">
             <UploadProgress steps={steps} activeStep={activeStep} />
             <div className="rounded-md bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-              Cuando el perfil esté listo, podrás revisarlo y crear entrevistas adaptadas a tu experiencia.
+              Cuando el procesamiento termine, accederás automáticamente a tu perfil.
             </div>
           </CardBody>
         </Card>
       </div>
-
-      {profile ? (
-        <div className="mt-5 space-y-4">
-          <Alert tone="success" title="Perfil generado">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span>El CV fue procesado correctamente.</span>
-              <Link className="font-semibold text-emerald-800 underline" to="/profile">Ver perfil</Link>
-            </div>
-          </Alert>
-          <ProfileSummaryCard profile={profile} />
-        </div>
-      ) : null}
     </>
   );
 }

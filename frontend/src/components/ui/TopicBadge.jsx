@@ -7,7 +7,6 @@ export default function TopicBadge({ topic }) {
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-semibold text-slate-950">{topic.name}</h3>
         <Badge tone={topic.skillType === 'TECHNICAL' ? 'info' : 'default'}>{formatSkillType(topic.skillType)}</Badge>
-        {topic.expectedLevel ? <Badge tone="warning">{topic.expectedLevel}</Badge> : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {(topic.subtopics || []).map((subtopic) => (

@@ -16,7 +16,7 @@ import { useAuth } from '../features/auth/useAuth.js';
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth();
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+  return <Navigate to={isAuthenticated ? '/inicio' : '/login'} replace />;
 }
 
 export function RouterProvider() {
@@ -29,7 +29,8 @@ export function RouterProvider() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/inicio" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<Navigate to="/inicio" replace />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/cv" element={<CvPage />} />
           <Route path="/interviews/new" element={<NewInterviewPage />} />

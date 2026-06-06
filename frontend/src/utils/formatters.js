@@ -28,7 +28,7 @@ const statusLabels = {
   CANCELLED: 'Cerrada',
   FEEDBACK_PENDING: 'Reporte pendiente',
   TECHNICAL: 'Técnica',
-  SOFT: 'Comunicación',
+  SOFT: 'Blanda',
   CODE: 'Código',
   CODING: 'Código',
 };

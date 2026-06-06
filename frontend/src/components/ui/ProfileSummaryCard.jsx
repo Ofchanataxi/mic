@@ -3,7 +3,7 @@ import Card, { CardBody, CardHeader } from './Card.jsx';
 export default function ProfileSummaryCard({ profile }) {
   return (
     <Card>
-      <CardHeader title={profile.fullName || 'Candidato'} description={profile.targetRole || 'Rol objetivo pendiente'} />
+      <CardHeader title={profile.fullName || 'Candidato'} description={profile.targetRole || 'Puesto objetivo pendiente'} />
       <CardBody className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

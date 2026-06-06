@@ -17,8 +17,8 @@ export default function HistoryCard({ item }) {
             <p className="mt-1 text-sm text-slate-900">{formatDate(item.createdAt)}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase text-slate-500">Rol</p>
-            <p className="mt-1 text-sm text-slate-900">{item.targetRole || 'Sin rol'}</p>
+            <p className="text-xs font-semibold uppercase text-slate-500">Puesto</p>
+            <p className="mt-1 text-sm text-slate-900">{item.targetRole || 'Sin puesto definido'}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-slate-500">Nivel</p>
