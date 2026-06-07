@@ -98,14 +98,18 @@ const analyzeVideoSegment = async ({ videoSegmentPath, startTimeMs, endTimeMs })
     const content = await openaiProvider.createJsonVisionEvaluation({
       imagePaths,
       systemPrompt: [
-        'Eres un evaluador visual prudente de entrevistas tecnicas.',
-        'Responde solo JSON parseable en espanol.',
-        'No diagnostiques emociones, salud mental, ansiedad, depresion ni condiciones medicas.',
-        'Evalua solo senales observables en frames: presencia, encuadre, orientacion general, atencion aparente a la camara/pantalla y postura observable.',
-        'Si algo no se puede inferir claramente, usa null y dilo en observableBehavior.',
+        'Eres un evaluador visual prudente de entrevistas técnicas.',
+        'Responde solo JSON parseable en español.',
+        'No diagnostiques emociones, salud mental, ansiedad, depresión ni condiciones médicas.',
+        'Evalúa únicamente contacto visual aproximado, postura y atención observable.',
+        'Las observaciones deben ser breves, naturales y útiles para la persona evaluada.',
+        'Usa frases como "Mantuvo poca atención durante la respuesta" o "Conservó una postura estable".',
+        'No menciones frames, imágenes, detecciones, modelos, puntuaciones, iluminación ni limitaciones técnicas.',
+        'No interpretes expresiones faciales ni atribuyas emociones o intenciones.',
+        'Si algo no se puede valorar con claridad, usa null y no agregues una explicación técnica.',
       ].join(' '),
       userPrompt: JSON.stringify({
-        instruction: 'Analiza estos frames del segmento de respuesta y devuelve scores de 0 a 100 o null si no hay evidencia suficiente.',
+        instruction: 'Valora el comportamiento observable durante la respuesta y devuelve scores de 0 a 100 o null si no hay evidencia suficiente.',
         requiredJsonShape: {
           eyeContactScore: 0,
           postureScore: 0,
@@ -116,7 +120,7 @@ const analyzeVideoSegment = async ({ videoSegmentPath, startTimeMs, endTimeMs })
             gazeObservation: 'string',
             postureObservation: 'string',
             attentionObservation: 'string',
-            limitations: ['string'],
+            limitations: [],
           },
         },
         technicalMetadata: fallback.observableBehavior,

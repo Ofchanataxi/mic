@@ -30,7 +30,7 @@ const candidateProfileSchema = {
     topics: {
       type: "array",
       minItems: 3,
-      maxItems: 8,
+      maxItems: 40,
       items: {
         type: "object",
         additionalProperties: false,
@@ -174,8 +174,12 @@ class OpenAiProvider {
         : "Construye una taxonomia tecnica concreta desde el primer intento.",
       "Reglas:",
       "- No inventes experiencia no sustentada por el CV.",
-      "- Genera entre 3 y 8 topics tecnicos. Cada topic debe ser una tecnologia concreta: lenguaje, framework, runtime, base de datos, plataforma o herramienta.",
+      "- Genera entre 3 y 40 topics tecnicos. Cada topic debe ser una tecnologia concreta: lenguaje, framework, runtime, base de datos, plataforma o herramienta.",
       "- Ejemplos validos de topic: Python, Node.js, Java, React, PostgreSQL, Docker y AWS.",
+      "- Recorre el CV completo, incluidas secciones de habilidades, experiencia, proyectos, educacion, certificaciones y herramientas.",
+      "- Incluye en technologies todas las tecnologias mencionadas explicitamente, aunque aparezcan una sola vez.",
+      "- Cada lenguaje, framework, base de datos, plataforma o herramienta explicita del CV debe tener su propio topic; no selecciones unicamente las tecnologias mas relevantes.",
+      "- No omitas tecnologias por el rol objetivo. La prioridad decide su relevancia, pero no su presencia.",
       "- No uses como topic categorias generales como Desarrollo de software, Programacion, Backend, Frontend, Bases de datos, Tecnologias o Ingenieria de software.",
       "- Cada topic debe contener entre 2 y 5 subtopics pequenos, concretos y evaluables sobre esa tecnologia.",
       "- Ejemplo: topic Node.js; subtopics event loop, asincronia con Promises, streams y manejo de errores.",
@@ -240,10 +244,44 @@ class OpenAiProvider {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
+    const technologyAliases = new Map([
+      ["node", "node-js"],
+      ["nodejs", "node-js"],
+      ["node-js", "node-js"],
+      ["mongo", "mongodb"],
+      ["mongo-db", "mongodb"],
+      ["postgres", "postgresql"],
+      ["js", "javascript"],
+      ["ts", "typescript"],
+      ["cpp", "c-plus-plus"],
+      ["c-plus-plus", "c-plus-plus"],
+      ["c-sharp", "c-sharp"],
+      ["dotnet", "net"],
+      ["sqlserver", "sql-server"],
+    ]);
+    const canonicalTechnology = (value) => {
+      const compact = String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+      if (compact === "c") return "c";
+      if (compact === "c#" || compact === "csharp") return "c-sharp";
+      if (compact === "c++" || compact === "cpp") return "c-plus-plus";
+      if (compact === ".net" || compact === "dotnet") return "net";
+      const normalized = normalize(value);
+      return technologyAliases.get(normalized) || normalized;
+    };
     const issues = [];
 
     if (profile.topics.length < 3) {
       issues.push("se generaron menos de 3 topics tecnicos");
+    }
+
+    const topicNames = new Set(profile.topics.map((topic) => canonicalTechnology(topic.name)));
+    const missingTechnologies = (profile.technologies || [])
+      .filter((technology) => {
+        const normalizedTechnology = canonicalTechnology(technology);
+        return normalizedTechnology && !topicNames.has(normalizedTechnology);
+      });
+    if (missingTechnologies.length > 0) {
+      issues.push(`tecnologias explicitas sin topic propio: ${missingTechnologies.join(", ")}`);
     }
 
     const genericTopics = profile.topics

@@ -11,13 +11,13 @@ const canonicalKey = (name) => stripVersion(name)
 const templateFor = (name) => {
   const value = canonicalKey(name);
 
-  if (value.includes('javascript')) return '// Escribe tu solución aquí\nconsole.log("Hola, mundo");\n';
-  if (value.includes('typescript')) return '// Escribe tu solución aquí\nconst mensaje: string = "Hola, mundo";\nconsole.log(mensaje);\n';
+  if (value.includes('javascript')) return 'const fs = require("fs");\nconst input = fs.readFileSync(0, "utf8").trim();\n\n// Escribe tu solución aquí usando input.\nconst result = input;\n\nconsole.log(result);\n';
+  if (value.includes('typescript')) return 'const fs = require("fs");\nconst input: string = fs.readFileSync(0, "utf8").trim();\n\n// Escribe tu solución aquí usando input.\nconst result: string = input;\n\nconsole.log(result);\n';
   if (value.includes('dart')) return 'void main() {\n  // Escribe tu solución aquí\n  print("Hola, mundo");\n}\n';
-  if (value.includes('python')) return '# Escribe tu solución aquí\nprint("Hola, mundo")\n';
+  if (value.includes('python')) return 'import sys\n\ninput_data = sys.stdin.read().strip()\n\n# Escribe tu solución aquí usando input_data.\nresult = input_data\n\nprint(result)\n';
   if (value.includes('javafx')) return 'public class Main {\n    public static void main(String[] args) {\n        // Escribe tu solución aquí\n        System.out.println("Hola, mundo");\n    }\n}\n';
-  if (value === 'java' || value.startsWith('java ')) return 'public class Main {\n    public static void main(String[] args) {\n        // Escribe tu solución aquí\n        System.out.println("Hola, mundo");\n    }\n}\n';
-  if (value.includes('c++')) return '#include <iostream>\n\nint main() {\n    // Escribe tu solución aquí\n    std::cout << "Hola, mundo" << std::endl;\n    return 0;\n}\n';
+  if (value === 'java' || value.startsWith('java ')) return 'import java.io.*;\n\npublic class Main {\n    public static void main(String[] args) throws Exception {\n        String input = new String(System.in.readAllBytes()).trim();\n\n        // Escribe tu solución aquí usando input.\n        String result = input;\n\n        System.out.println(result);\n    }\n}\n';
+  if (value.includes('c++')) return '#include <iostream>\n#include <sstream>\n#include <string>\n\nint main() {\n    std::ostringstream buffer;\n    buffer << std::cin.rdbuf();\n    std::string input = buffer.str();\n\n    // Escribe tu solución aquí usando input.\n    std::string result = input;\n\n    std::cout << result;\n    return 0;\n}\n';
   if (value === 'c' || value.startsWith('c ')) return '#include <stdio.h>\n\nint main(void) {\n    /* Escribe tu solución aquí */\n    printf("Hola, mundo\\n");\n    return 0;\n}\n';
   if (value.includes('c#')) return 'using System;\n\npublic class Program {\n    public static void Main() {\n        // Escribe tu solución aquí\n        Console.WriteLine("Hola, mundo");\n    }\n}\n';
   if (value === 'go' || value.startsWith('go ')) return 'package main\n\nimport "fmt"\n\nfunc main() {\n    // Escribe tu solución aquí\n    fmt.Println("Hola, mundo")\n}\n';

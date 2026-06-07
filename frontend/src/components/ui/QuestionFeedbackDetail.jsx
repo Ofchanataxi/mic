@@ -3,9 +3,10 @@ import { formatScore, formatSkillType } from '../../utils/formatters.js';
 import Card, { CardBody, CardHeader } from './Card.jsx';
 import RecommendationList from './RecommendationList.jsx';
 
-const asArray = (value) => {
-  if (!value) return [];
-  return Array.isArray(value) ? value.filter(Boolean) : [value];
+const asNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 };
 
 function HelpTip({ text }) {
@@ -52,30 +53,107 @@ function semanticComment(question) {
 function audioComment(question) {
   const audio = question.audioAnalysis;
   const indicators = audio?.confidenceIndicators || {};
-  const observations = [
+  const raw = audio?.rawData || {};
+  const wordCount = asNumber(audio?.wordCount);
+  const speechRate = asNumber(audio?.speechRate);
+  const pauseCount = asNumber(audio?.pauseCount);
+  const averagePauseMs = asNumber(audio?.averagePauseMs);
+  const pauseRatio = asNumber(raw.pauseRatio);
+  const pausesPerMinute = asNumber(raw.pausesPerMinute);
+
+  if (Number.isFinite(wordCount) && wordCount === 0) {
+    return 'No hubo una respuesta oral clara para valorar el desenvolvimiento.';
+  }
+
+  const observations = [];
+
+  if (Number.isFinite(wordCount)) {
+    if (wordCount < 12) observations.push('La respuesta fue demasiado breve');
+    else if (wordCount < 35) observations.push('La respuesta fue breve');
+    else if (wordCount > 220) observations.push('La respuesta fue muy extensa');
+    else if (wordCount > 160) observations.push('La respuesta fue extensa');
+    else observations.push('La respuesta tuvo una extensión adecuada');
+  }
+
+  if (Number.isFinite(speechRate)) {
+    if (speechRate < 55) observations.push('El ritmo de habla fue muy lento');
+    else if (speechRate < 85) observations.push('El ritmo de habla fue algo lento');
+    else if (speechRate > 220) observations.push('El ritmo de habla fue demasiado rápido');
+    else if (speechRate > 180) observations.push('El ritmo de habla fue algo rápido');
+    else observations.push('Mantuvo un ritmo de habla claro');
+  }
+
+  if (Number.isFinite(pauseCount)) {
+    if (pauseCount === 0) {
+      observations.push('Habló de forma continua, sin pausas prolongadas');
+    } else if (
+      (Number.isFinite(averagePauseMs) && averagePauseMs > 2500)
+      || (Number.isFinite(pauseRatio) && pauseRatio > 0.35)
+    ) {
+      observations.push('Tuvo muchas pausas prolongadas que afectaron la continuidad');
+    } else if (Number.isFinite(pausesPerMinute) && pausesPerMinute > 14) {
+      observations.push('Tuvo pausas muy frecuentes durante la respuesta');
+    } else if (
+      (Number.isFinite(averagePauseMs) && averagePauseMs > 1500)
+      || (Number.isFinite(pauseRatio) && pauseRatio > 0.22)
+    ) {
+      observations.push('Tuvo varias pausas largas');
+    } else {
+      observations.push('Hizo pausas naturales para organizar sus ideas');
+    }
+  }
+
+  if (observations.length) return `${observations.join('. ')}.`;
+
+  const legacyObservations = [
     indicators.responseLength,
     indicators.speechRate,
     indicators.pauseEstimation,
-  ].filter(Boolean);
-  return observations.join('. ')
-    || 'Se revisaron el ritmo de habla, la fluidez y la forma de desarrollar la respuesta.';
+  ]
+    .filter(Boolean)
+    .map((text) => String(text)
+      .replace(/^se detectaron?\s+/i, '')
+      .replace(/^no se detectaron\s+/i, 'No tuvo ')
+      .replace(/^las pausas apoyan/i, 'Las pausas favorecieron'));
+
+  return legacyObservations.length
+    ? `${legacyObservations.join('. ')}.`
+    : 'Se valoraron el ritmo de habla, las pausas y la forma de desarrollar la respuesta.';
 }
 
 function videoComment(question) {
   const video = question.videoAnalysis;
-  const behavior = video?.observableBehavior || {};
   const raw = video?.rawData || {};
   if (['VIDEO_MODEL_NOT_CONFIGURED', 'VIDEO_SEGMENT_UNAVAILABLE'].includes(raw.status)) {
-    return 'No hubo suficiente información visual para ofrecer una observación confiable.';
+    return 'No hubo suficiente información visual para valorar el comportamiento durante esta respuesta.';
   }
-  const observations = [
-    behavior.gazeObservation,
-    behavior.postureObservation,
-    behavior.attentionObservation,
-    ...asArray(behavior.limitations),
-  ].filter(Boolean);
-  return observations.join('. ')
-    || 'Se observaron la presencia frente a cámara, la postura y la atención durante la respuesta.';
+
+  const observations = [];
+  const eyeContactScore = asNumber(video?.eyeContactScore);
+  const postureScore = asNumber(video?.postureScore);
+  const attentionScore = asNumber(video?.attentionScore);
+
+  if (Number.isFinite(attentionScore)) {
+    if (attentionScore < 45) observations.push('Mostró poca atención durante la respuesta');
+    else if (attentionScore < 70) observations.push('La atención fue variable');
+    else observations.push('Mantuvo una buena atención');
+  }
+
+  if (Number.isFinite(eyeContactScore)) {
+    if (eyeContactScore < 45) observations.push('Mantuvo poco contacto visual');
+    else if (eyeContactScore < 70) observations.push('El contacto visual fue variable');
+    else observations.push('Mantuvo un contacto visual adecuado');
+  }
+
+  if (Number.isFinite(postureScore)) {
+    if (postureScore < 45) observations.push('La postura fue poco estable');
+    else if (postureScore < 70) observations.push('La postura pudo ser más estable');
+    else observations.push('Conservó una postura estable');
+  }
+
+  return observations.length
+    ? `${observations.join('. ')}.`
+    : 'No hubo suficiente información visual para valorar el comportamiento durante esta respuesta.';
 }
 
 function codeComment(question) {

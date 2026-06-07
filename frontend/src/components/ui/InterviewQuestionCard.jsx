@@ -62,7 +62,7 @@ export default function InterviewQuestionCard({
         {isCoding ? (
           <div className="space-y-4">
             <div className="rounded-md border border-indigo-200 bg-indigo-50 p-4 text-sm leading-6 text-indigo-800">
-              Selecciona el lenguaje adecuado antes de escribir tu solución. La plantilla incluida debe conservar una estructura compilable; escribe tu código en el espacio señalado.
+              Selecciona el lenguaje adecuado y conserva la lectura desde la entrada estándar. La solución se comprobará con varios casos de prueba; imprime únicamente el resultado solicitado.
             </div>
             <div className="max-w-sm">
               <Select

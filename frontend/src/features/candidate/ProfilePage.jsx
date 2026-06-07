@@ -18,6 +18,11 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const technicalTopics = topics.filter((topic) => topic.skillType === 'TECHNICAL');
   const softTopics = topics.filter((topic) => topic.skillType === 'SOFT');
+  const detectedTechnologies = Array.from(new Set(
+    (profile?.rawStructuredProfile?.technologies || [])
+      .map((technology) => String(technology || '').trim())
+      .filter(Boolean),
+  )).sort((left, right) => left.localeCompare(right));
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -102,8 +107,31 @@ export default function ProfilePage() {
           <div className="space-y-5">
             <Card>
               <CardHeader
-                title="Habilidades técnicas"
-                description={`${technicalTopics.length} tecnologías identificadas`}
+                title="Tecnologías identificadas"
+                description={`${detectedTechnologies.length} tecnologías encontradas en tu Curriculum Vitae`}
+              />
+              <CardBody>
+                {detectedTechnologies.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {detectedTechnologies.map((technology) => (
+                      <span
+                        key={technology}
+                        className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-800"
+                      >
+                        {technology}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-600">No se identificaron tecnologías específicas.</p>
+                )}
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Áreas técnicas para entrevistas"
+                description={`${technicalTopics.length} áreas organizadas para evaluar tus conocimientos`}
               />
               <CardBody className="space-y-4">
                 {technicalTopics.map((topic) => <TopicBadge key={topic.id || topic.name} topic={topic} />)}

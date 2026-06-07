@@ -31,7 +31,8 @@ function mapQuestion(question, includeResponse = false) {
           codeSubmission: question.codeSubmission
             ? {
                 language: question.codeSubmission.language,
-                code: question.codeSubmission.code
+                code: question.codeSubmission.code,
+                testCases: question.codingTestCases || []
               }
             : null
         }
@@ -105,11 +106,21 @@ function buildFixedInterviewPlan(evaluationPlan) {
     { length: count },
     (_, index) => ({ ...items[index % items.length] })
   );
-  const selectedTechnical = takeWithReuse(technical, 5);
+  const codingFriendlyPattern = /\b(?:javascript|typescript|python|java|c\+\+|c#|go|rust|php|ruby|kotlin|swift|algorit|estructura\s+de\s+datos|arreglo|array|lista|cadena|string|l[oó]gica|funci[oó]n|programaci[oó]n)\b/iu;
+  const frameworkPattern = /\b(?:angular|react|vue|flask|fastapi|django|spring|express|microservicio|api|http|frontend|interfaz|base\s+de\s+datos|sql)\b/iu;
+  const codingCandidates = [...technical].sort((left, right) => {
+    const score = (item) => {
+      const text = `${item.topic || ""} ${item.subtopic || ""}`;
+      return (codingFriendlyPattern.test(text) ? 2 : 0) - (frameworkPattern.test(text) ? 2 : 0);
+    };
+    return score(right) - score(left);
+  });
+  const selectedTechnical = takeWithReuse(technical, 3);
+  const selectedCoding = takeWithReuse(codingCandidates, 2);
   const selectedSoft = takeWithReuse(soft, 3);
 
   return [
-    ...selectedTechnical.slice(0, 3).map((item) => ({
+    ...selectedTechnical.map((item) => ({
       ...item,
       forcedQuestionType: "TECHNICAL"
     })),
@@ -117,7 +128,7 @@ function buildFixedInterviewPlan(evaluationPlan) {
       ...item,
       forcedQuestionType: "SOFT_SKILL"
     })),
-    ...selectedTechnical.slice(3, 5).map((item) => ({
+    ...selectedCoding.map((item) => ({
       ...item,
       forcedQuestionType: "CODING"
     }))

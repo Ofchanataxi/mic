@@ -164,11 +164,11 @@ const classifySpeechRate = (speechRate) => {
 };
 
 const classifyPauses = ({ pauseCount, averagePauseMs, pausesPerMinute, pauseRatio }) => {
-  if (pauseCount === 0) return 'no se detectaron pausas internas prolongadas';
-  if (averagePauseMs > 2500 || pauseRatio > 0.35) return 'se detectaron pausas prolongadas que reducen la continuidad';
-  if (pausesPerMinute > 14) return 'se detectaron pausas muy frecuentes';
-  if (averagePauseMs > 1500 || pauseRatio > 0.22) return 'se detectaron varias pausas de duración elevada';
-  return 'las pausas apoyan una comunicación natural y organizada';
+  if (pauseCount === 0) return 'habló de forma continua, sin pausas prolongadas';
+  if (averagePauseMs > 2500 || pauseRatio > 0.35) return 'tuvo muchas pausas prolongadas que afectaron la continuidad';
+  if (pausesPerMinute > 14) return 'tuvo pausas muy frecuentes durante la respuesta';
+  if (averagePauseMs > 1500 || pauseRatio > 0.22) return 'tuvo varias pausas largas';
+  return 'hizo pausas naturales que ayudaron a organizar la respuesta';
 };
 
 const analyzeAudio = async ({ audioPath, transcription, durationMs }) => {
@@ -207,9 +207,11 @@ const analyzeAudio = async ({ audioPath, transcription, durationMs }) => {
   const confidenceIndicators = {
     responseLength: classifyResponseLength(wordCount),
     speechRate: classifySpeechRate(speechRate),
-    structure: sentenceCount >= 2 ? 'respuesta con separacion de ideas' : 'estructura oral limitada',
-    fillerUsage: fillerCount > 0 ? `muletillas detectadas: ${fillerCount}` : 'sin muletillas evidentes en transcripcion',
-    silenceHandling: wordCount === 0 ? 'segmento tratado como silencio o sin voz confiable' : 'voz transcrita y evaluada',
+    structure: sentenceCount >= 2 ? 'organizó la respuesta en varias ideas' : 'la respuesta tuvo poca estructura',
+    fillerUsage: fillerCount > 0
+      ? `usó ${fillerCount} ${fillerCount === 1 ? 'muletilla' : 'muletillas'}`
+      : 'habló sin muletillas evidentes',
+    silenceHandling: wordCount === 0 ? 'no hubo una respuesta oral clara' : 'la respuesta oral fue clara para el análisis',
     pauseEstimation: classifyPauses({
       pauseCount,
       averagePauseMs,

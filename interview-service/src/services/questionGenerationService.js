@@ -3,6 +3,7 @@ const interviewRepository = require("../repositories/interviewRepository");
 const questionGenerationProvider = require("../providers/questionGenerationProvider");
 const embeddingProvider = require("../providers/embeddingProvider");
 const { cosineSimilarity } = require("../utils/cosineSimilarity");
+const { ApiError } = require("../utils/apiError");
 
 function normalizeExpectedLevel(value) {
   return ["BASIC", "INTERMEDIATE", "ADVANCED"].includes(value) ? value : null;
@@ -37,12 +38,28 @@ async function generateQuestionsForPlan({ userId, targetRole, level, evaluationP
     const attempts = [];
 
     for (let attemptNumber = 1; attemptNumber <= env.questionGenerationMaxAttempts; attemptNumber += 1) {
-      const question = await questionGenerationProvider.generateQuestion({
-        planItem,
-        targetRole,
-        level,
-        attemptNumber
-      });
+      let question;
+      try {
+        question = await questionGenerationProvider.generateQuestion({
+          planItem,
+          targetRole,
+          level,
+          attemptNumber
+        });
+      } catch (error) {
+        if (!questionGenerationProvider.isRecoverableGenerationError(error)) {
+          throw error;
+        }
+        const details = questionGenerationProvider.generationErrorDetails(error);
+        attempts.push({
+          attemptNumber,
+          prompt: details.prompt,
+          similarityScore: 1,
+          accepted: false,
+          rejectionReason: details.code
+        });
+        continue;
+      }
       const { embedding, model } = await embeddingProvider.generateEmbedding(question.prompt);
       const similarityScore = maxSimilarity(embedding, acceptedEmbeddings);
       const accepted = similarityScore < env.questionSimilarityThreshold;
@@ -75,6 +92,14 @@ async function generateQuestionsForPlan({ userId, targetRole, level, evaluationP
       }
     }
 
+    if (!bestCandidate) {
+      throw new ApiError(502, "Could not generate a valid oral technical question", {
+        topic: planItem.topic,
+        subtopic: planItem.subtopic,
+        attempts
+      });
+    }
+
     if (!bestCandidate.attempts.some((attempt) => attempt.accepted)) {
       bestCandidate.attempts = bestCandidate.attempts.map((attempt) => ({
         ...attempt,
@@ -96,6 +121,7 @@ async function generateQuestionsForPlan({ userId, targetRole, level, evaluationP
       questionType: bestCandidate.questionType,
       prompt: bestCandidate.prompt,
       language: bestCandidate.language,
+      codingTestCases: bestCandidate.codingTestCases,
       orderIndex: index + 1,
       expectedLevel: normalizeExpectedLevel(planItem.expectedLevel),
       generatedByModel: bestCandidate.generatedByModel,

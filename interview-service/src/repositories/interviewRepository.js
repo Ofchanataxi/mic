@@ -27,6 +27,7 @@ async function createInterviewWithQuestions({ interview, questions }) {
             questionType: question.questionType,
             prompt: question.prompt,
             language: question.language,
+            codingTestCases: question.codingTestCases || undefined,
             orderIndex: question.orderIndex,
             expectedLevel: question.expectedLevel,
             generatedByModel: question.generatedByModel,
