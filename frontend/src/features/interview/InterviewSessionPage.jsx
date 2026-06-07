@@ -17,7 +17,7 @@ import ProgressIndicator from '../../components/ui/ProgressIndicator.jsx';
 import RecordingIndicator from '../../components/ui/RecordingIndicator.jsx';
 import UploadProgress from '../../components/ui/UploadProgress.jsx';
 import { API_BASE_URL } from '../../api/httpClient.js';
-import { getApiErrorMessage } from '../../utils/formatters.js';
+import { getApiErrorMessage, normalizeStatusKey } from '../../utils/formatters.js';
 import { getAccessToken } from '../../utils/storage.js';
 import { useAuth } from '../auth/useAuth.js';
 
@@ -47,8 +47,13 @@ function formatElapsed(ms) {
   return `${minutes}:${seconds}`;
 }
 
+function isCodingQuestion(question) {
+  const type = normalizeStatusKey(question?.questionType || question?.skillType);
+  return type === 'CODING' || type === 'CODE' || type === 'CODING_EXERCISE';
+}
+
 function buildInitialResponse(question, startMs) {
-  const isCoding = question.questionType === 'CODING';
+  const isCoding = isCodingQuestion(question);
   return {
     questionId: question.questionId,
     answerText: isCoding ? null : '',
@@ -128,7 +133,7 @@ export default function InterviewSessionPage() {
   }, [loadInterview]);
 
   useEffect(() => {
-    if (!questions.some((question) => question.questionType === 'CODING')) return;
+    if (!questions.some(isCodingQuestion)) return;
     evaluationApi.getJudge0Languages()
       .then(setCodeLanguages)
       .catch(() => setCodeLanguages([]));
@@ -409,7 +414,7 @@ export default function InterviewSessionPage() {
       ) : null}
 
       {phase === 'recording' && currentQuestion ? (
-        <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <div className="grid gap-5 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(260px,340px)] xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-5">
             <ProgressIndicator current={currentIndex + 1} total={questions.length} />
             <InterviewQuestionCard
@@ -433,7 +438,7 @@ export default function InterviewSessionPage() {
               )}
             </div>
           </div>
-          <aside className="space-y-4">
+          <aside className="order-first mx-auto w-full max-w-md space-y-4 min-[900px]:order-none min-[900px]:sticky min-[900px]:top-6 min-[900px]:mx-0 min-[900px]:max-w-none min-[900px]:self-start">
             <CameraPreview stream={stream} />
             <Card>
               <CardHeader title="Grabación activa" description="No cierres ni recargues esta pestaña." />

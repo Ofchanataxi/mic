@@ -3,9 +3,14 @@ import Badge from './Badge.jsx';
 import Card, { CardBody, CardHeader } from './Card.jsx';
 import MonacoCodeEditor from './MonacoCodeEditor.jsx';
 import Select from './Select.jsx';
-import { formatSkillType } from '../../utils/formatters.js';
+import { formatSkillType, normalizeStatusKey } from '../../utils/formatters.js';
 
 const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9+#]+/g, '');
+
+const isCodingQuestion = (question) => {
+  const type = normalizeStatusKey(question?.questionType || question?.skillType);
+  return type === 'CODING' || type === 'CODE' || type === 'CODING_EXERCISE';
+};
 
 export default function InterviewQuestionCard({
   question,
@@ -14,7 +19,7 @@ export default function InterviewQuestionCard({
   onCodeChange,
   onLanguageChange,
 }) {
-  const isCoding = question.questionType === 'CODING';
+  const isCoding = isCodingQuestion(question);
   const codeSubmission = response?.codeSubmission || { language: '', code: '' };
 
   const selectedLanguage = useMemo(() => {
@@ -52,7 +57,7 @@ export default function InterviewQuestionCard({
       <CardHeader
         title={`Pregunta ${question.orderIndex || ''}`}
         description={`${question.topic || 'Área'} - ${question.subtopic || 'Tema'}`}
-        action={<Badge tone={isCoding ? 'info' : 'default'}>{formatSkillType(question.questionType)}</Badge>}
+        action={<Badge tone={isCoding ? 'info' : 'default'}>{formatSkillType(question.questionType || question.skillType)}</Badge>}
       />
       <CardBody className="space-y-5">
         <div className="rounded-lg bg-slate-50 p-5 text-base leading-7 text-slate-900">

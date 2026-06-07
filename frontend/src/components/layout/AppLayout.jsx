@@ -12,7 +12,7 @@ export default function AppLayout() {
         {isInterviewSession ? null : <Sidebar />}
         <div className="min-w-0 flex-1">
           {isInterviewSession ? null : <Topbar />}
-          <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
+          <main className={`mx-auto w-full px-4 py-6 lg:px-8 ${isInterviewSession ? 'max-w-[1600px]' : 'max-w-7xl'}`}>
             <Outlet />
           </main>
         </div>
