@@ -31,7 +31,8 @@ function mapQuestion(question, includeResponse = false) {
           codeSubmission: question.codeSubmission
             ? {
                 language: question.codeSubmission.language,
-                code: question.codeSubmission.code
+                code: question.codeSubmission.code,
+                testCases: question.codingTestCases || []
               }
             : null
         }
@@ -90,44 +91,48 @@ function assertPlanMatchesRequest(plan, input) {
   }
 }
 
-function requiredCodingQuestions(questionCount) {
-  if (questionCount >= 9) {
-    return env.minCodingQuestionsLargeInterview;
-  }
-  if (questionCount >= 5) {
-    return env.minCodingQuestionsSmallInterview;
-  }
-  return 0;
-}
+function buildFixedInterviewPlan(evaluationPlan) {
+  const technical = evaluationPlan.filter((item) => item.skillType === "TECHNICAL");
+  const soft = evaluationPlan.filter((item) => item.skillType === "SOFT");
 
-function applyCodingQuestionQuota(evaluationPlan, questionCount) {
-  const plan = evaluationPlan.slice(0, questionCount).map((item) => ({ ...item }));
-  const requiredCount = Math.min(
-    requiredCodingQuestions(questionCount),
-    plan.filter((item) => item.skillType !== "SOFT").length
+  if (technical.length === 0 || soft.length === 0) {
+    throw new ApiError(422, "Candidate profile does not provide topics for the required interview structure", {
+      required: { technical: 1, soft: 1 },
+      available: { technical: technical.length, soft: soft.length }
+    });
+  }
+
+  const takeWithReuse = (items, count) => Array.from(
+    { length: count },
+    (_, index) => ({ ...items[index % items.length] })
   );
-
-  if (requiredCount <= 0) {
-    return plan;
-  }
-
-  const alreadyCoding = plan.filter((item) => item.forcedQuestionType === "CODING").length;
-  let remaining = requiredCount - alreadyCoding;
-
-  for (let index = plan.length - 1; index >= 0 && remaining > 0; index -= 1) {
-    if (plan[index].skillType === "SOFT" || plan[index].forcedQuestionType === "CODING") {
-      continue;
-    }
-
-    plan[index] = {
-      ...plan[index],
-      forcedQuestionType: "CODING",
-      reason: `${plan[index].reason || "Coverage balance"} / coding quota`
+  const codingFriendlyPattern = /\b(?:javascript|typescript|python|java|c\+\+|c#|go|rust|php|ruby|kotlin|swift|algorit|estructura\s+de\s+datos|arreglo|array|lista|cadena|string|l[oó]gica|funci[oó]n|programaci[oó]n)\b/iu;
+  const frameworkPattern = /\b(?:angular|react|vue|flask|fastapi|django|spring|express|microservicio|api|http|frontend|interfaz|base\s+de\s+datos|sql)\b/iu;
+  const codingCandidates = [...technical].sort((left, right) => {
+    const score = (item) => {
+      const text = `${item.topic || ""} ${item.subtopic || ""}`;
+      return (codingFriendlyPattern.test(text) ? 2 : 0) - (frameworkPattern.test(text) ? 2 : 0);
     };
-    remaining -= 1;
-  }
+    return score(right) - score(left);
+  });
+  const selectedTechnical = takeWithReuse(technical, 3);
+  const selectedCoding = takeWithReuse(codingCandidates, 2);
+  const selectedSoft = takeWithReuse(soft, 3);
 
-  return plan;
+  return [
+    ...selectedTechnical.map((item) => ({
+      ...item,
+      forcedQuestionType: "TECHNICAL"
+    })),
+    ...selectedSoft.map((item) => ({
+      ...item,
+      forcedQuestionType: "SOFT_SKILL"
+    })),
+    ...selectedCoding.map((item) => ({
+      ...item,
+      forcedQuestionType: "CODING"
+    }))
+  ];
 }
 
 async function createInterview(input) {
@@ -140,7 +145,7 @@ async function createInterview(input) {
 
   assertPlanMatchesRequest(adaptiveStrategy, input);
 
-  const evaluationPlan = applyCodingQuestionQuota(adaptiveStrategy.evaluationPlan, input.questionCount);
+  const evaluationPlan = buildFixedInterviewPlan(adaptiveStrategy.evaluationPlan);
   const questions = await questionGenerationService.generateQuestionsForPlan({
     userId: input.userId,
     targetRole: input.targetRole || adaptiveStrategy.targetRole,

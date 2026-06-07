@@ -5,11 +5,12 @@ const isComplete = (status) => ['COMPLETED', 'READY', 'FINISHED'].includes(statu
 const isFailed = (status) => ['FAILED', 'DISPATCH_FAILED', 'CANCELLED'].includes(status);
 
 export default function ProcessingTimeline({ evaluationStatus, feedbackStatus }) {
+  const feedbackComplete = isComplete(feedbackStatus);
   const steps = [
     { label: 'Entrevista enviada', status: 'COMPLETED' },
     { label: 'Evaluación en proceso', status: evaluationStatus },
-    { label: 'Reporte en generación', status: feedbackStatus },
-    { label: 'Reporte disponible', status: feedbackStatus === 'READY' ? 'COMPLETED' : feedbackStatus },
+    { label: 'Feedback en generación', status: feedbackStatus },
+    { label: 'Feedback disponible', status: feedbackComplete ? 'COMPLETED' : feedbackStatus },
   ];
 
   return (

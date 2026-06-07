@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Square } from 'lucide-react';
 import { interviewApi } from '../../api/interviewApi.js';
 import { mediaApi } from '../../api/mediaApi.js';
+import { evaluationApi } from '../../api/evaluationApi.js';
 import Alert from '../../components/ui/Alert.jsx';
 import Button from '../../components/ui/Button.jsx';
 import CameraPreview from '../../components/ui/CameraPreview.jsx';
@@ -16,11 +17,12 @@ import ProgressIndicator from '../../components/ui/ProgressIndicator.jsx';
 import RecordingIndicator from '../../components/ui/RecordingIndicator.jsx';
 import UploadProgress from '../../components/ui/UploadProgress.jsx';
 import { API_BASE_URL } from '../../api/httpClient.js';
-import { getApiErrorMessage } from '../../utils/formatters.js';
+import { getApiErrorMessage, normalizeStatusKey } from '../../utils/formatters.js';
 import { getAccessToken } from '../../utils/storage.js';
 import { useAuth } from '../auth/useAuth.js';
 
 const uploadSteps = ['Cerrar respuesta actual', 'Detener grabación', 'Guardar entrevista', 'Finalizar'];
+const MAX_INTERVIEW_DURATION_MS = 30 * 60 * 1000;
 
 function chooseMimeType() {
   const candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -45,8 +47,13 @@ function formatElapsed(ms) {
   return `${minutes}:${seconds}`;
 }
 
+function isCodingQuestion(question) {
+  const type = normalizeStatusKey(question?.questionType || question?.skillType);
+  return type === 'CODING' || type === 'CODE' || type === 'CODING_EXERCISE';
+}
+
 function buildInitialResponse(question, startMs) {
-  const isCoding = question.questionType === 'CODING';
+  const isCoding = isCodingQuestion(question);
   return {
     questionId: question.questionId,
     answerText: isCoding ? null : '',
@@ -78,6 +85,7 @@ export default function InterviewSessionPage() {
   const [uploadStep, setUploadStep] = useState(0);
   const [uploadPercent, setUploadPercent] = useState(0);
   const [cameraError, setCameraError] = useState('');
+  const [codeLanguages, setCodeLanguages] = useState([]);
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -101,7 +109,10 @@ export default function InterviewSessionPage() {
 
   const relativeNow = useCallback(() => {
     if (!recordingStartedAtRef.current) return 0;
-    return Math.max(0, Math.round(performance.now() - recordingStartedAtRef.current));
+    return Math.min(
+      MAX_INTERVIEW_DURATION_MS,
+      Math.max(0, Math.round(performance.now() - recordingStartedAtRef.current)),
+    );
   }, []);
 
   const loadInterview = useCallback(async () => {
@@ -120,6 +131,13 @@ export default function InterviewSessionPage() {
   useEffect(() => {
     loadInterview();
   }, [loadInterview]);
+
+  useEffect(() => {
+    if (!questions.some(isCodingQuestion)) return;
+    evaluationApi.getJudge0Languages()
+      .then(setCodeLanguages)
+      .catch(() => setCodeLanguages([]));
+  }, [questions]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -258,7 +276,7 @@ export default function InterviewSessionPage() {
     });
   };
 
-  const updateLanguage = (language) => {
+  const updateLanguage = useCallback((language, template = '') => {
     if (!currentQuestion) return;
     setResponses((current) => {
       const existing = current[currentQuestion.questionId] || buildInitialResponse(currentQuestion, activeQuestionStartRef.current ?? relativeNow());
@@ -267,13 +285,14 @@ export default function InterviewSessionPage() {
         [currentQuestion.questionId]: {
           ...existing,
           codeSubmission: {
-            ...(existing.codeSubmission || { code: '' }),
+            ...(existing.codeSubmission || {}),
             language,
+            code: template || existing.codeSubmission?.code || '',
           },
         },
       };
     });
-  };
+  }, [currentQuestion, relativeNow]);
 
   const stopRecorder = async () => new Promise((resolve, reject) => {
     const recorder = recorderRef.current;
@@ -348,6 +367,12 @@ export default function InterviewSessionPage() {
     }
   };
 
+  useEffect(() => {
+    if (phase === 'recording' && elapsedMs >= MAX_INTERVIEW_DURATION_MS && !finishingRef.current) {
+      finishInterview();
+    }
+  }, [elapsedMs, phase]);
+
   const retrySubmitFinalPayload = async () => {
     if (!finalVideoFileRef.current || !finalResponsesRef.current) return;
     setPhase('finishing');
@@ -372,7 +397,7 @@ export default function InterviewSessionPage() {
     <>
       <PageHeader
         eyebrow="Sesión"
-        title="Entrevista técnica"
+        title="Entrevista"
         description="Responde una pregunta a la vez. La cámara y el micrófono se graban de forma continua hasta finalizar."
         action={<RecordingIndicator active={phase === 'recording' || phase === 'finishing'} elapsedLabel={formatElapsed(elapsedMs)} />}
       />
@@ -389,12 +414,13 @@ export default function InterviewSessionPage() {
       ) : null}
 
       {phase === 'recording' && currentQuestion ? (
-        <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
+        <div className="grid gap-5 min-[900px]:grid-cols-[minmax(0,1fr)_minmax(260px,340px)] xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-5">
             <ProgressIndicator current={currentIndex + 1} total={questions.length} />
             <InterviewQuestionCard
               question={currentQuestion}
               response={currentResponse}
+              codeLanguages={codeLanguages}
               onCodeChange={updateCode}
               onLanguageChange={updateLanguage}
             />
@@ -412,14 +438,14 @@ export default function InterviewSessionPage() {
               )}
             </div>
           </div>
-          <aside className="space-y-4">
+          <aside className="order-first mx-auto w-full max-w-md space-y-4 min-[900px]:order-none min-[900px]:sticky min-[900px]:top-6 min-[900px]:mx-0 min-[900px]:max-w-none min-[900px]:self-start">
             <CameraPreview stream={stream} />
             <Card>
               <CardHeader title="Grabación activa" description="No cierres ni recargues esta pestaña." />
               <CardBody className="space-y-3 text-sm text-slate-600">
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Video continuo</div>
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Preguntas registradas</div>
-                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Reporte al finalizar</div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Feedback al finalizar</div>
               </CardBody>
             </Card>
           </aside>

@@ -1,10 +1,12 @@
 # auth-service
 
-`auth-service` es dueño de usuarios, credenciales, roles y refresh tokens de MIC. Emite JWT compatibles con `api-gateway` y persiste datos en PostgreSQL usando el schema `auth`.
+`auth-service` es dueño de usuarios, credenciales, roles y refresh tokens de CCInterview. Emite JWT compatibles con `api-gateway` y persiste datos en PostgreSQL usando el schema `auth`.
 
 ## Qué Hace
 
 - Registro de usuarios `CANDIDATE`.
+- Verificación de correo antes del primer inicio de sesión.
+- Recuperación y restablecimiento seguro de contraseña.
 - Login con bcrypt.
 - Emisión de access tokens JWT.
 - Emisión y rotación de refresh tokens.
@@ -51,13 +53,22 @@ Variables principales:
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
 - `CORS_ORIGIN`
+- `EMAIL_FROM`
+- `EMAIL_PASSWORD`
+- `EMAIL_HOST=smtp.gmail.com`
+- `EMAIL_PORT=465`
+- `EMAIL_SECURE=true`
+- `FRONTEND_URL=http://localhost:5173`
+- `EMAIL_VERIFICATION_EXPIRES_IN=24h`
+- `PASSWORD_RESET_EXPIRES_IN=1h`
 
-En producción, `JWT_SECRET` y `ADMIN_PASSWORD` deben venir de secretos seguros.
+`EMAIL_PASSWORD` debe ser una contraseña de aplicación del proveedor SMTP y nunca debe guardarse en Git. En producción, `JWT_SECRET`, `ADMIN_PASSWORD` y las credenciales SMTP deben venir de Secret Manager o variables seguras del entorno.
 
 ## Modelo de Datos
 
 - `User`: email único, hash de contraseña, rol, estado y fecha de último login.
 - `RefreshToken`: token hasheado, expiración, revocación y rotación.
+- `ActionToken`: token de un solo uso, hasheado y con expiración para verificar correo o restablecer contraseña.
 
 El servicio usa exclusivamente el schema `auth`.
 
@@ -107,7 +118,7 @@ Configura:
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=Admin123456
 ADMIN_FIRST_NAME=Admin
-ADMIN_LAST_NAME=MIC
+ADMIN_LAST_NAME=CCInterview
 ```
 
 Ejecuta:
@@ -137,6 +148,53 @@ Content-Type: application/json
   "password": "Candidate123",
   "firstName": "Pedro",
   "lastName": "Piedra"
+}
+```
+
+El registro envía un enlace de verificación. La cuenta no puede iniciar sesión hasta confirmar el correo.
+
+Verificar correo:
+
+```http
+POST http://localhost:3005/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "<token-del-enlace>"
+}
+```
+
+Reenviar verificación:
+
+```http
+POST http://localhost:3005/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "candidate@example.com"
+}
+```
+
+Solicitar recuperación:
+
+```http
+POST http://localhost:3005/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "candidate@example.com"
+}
+```
+
+Restablecer contraseña:
+
+```http
+POST http://localhost:3005/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "<token-del-enlace>",
+  "password": "NuevaPassword123"
 }
 ```
 

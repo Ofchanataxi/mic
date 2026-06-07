@@ -1,49 +1,33 @@
 const { clampScore } = require('../utils/scoreUtils');
 const judge0Client = require('../clients/judge0Client');
+const { containsInjectionAttempt } = require('./semanticEvaluationService');
 
 const normalizeOutput = (value) => String(value || '').trim().replace(/\r\n/g, '\n');
 
-const scoreJudge0Result = ({ result, expectedOutput }) => {
+const mapJudge0Result = ({ result, testCase, index }) => {
   const statusId = result.status?.id;
   const statusDescription = result.status?.description || 'UNKNOWN';
   const accepted = statusId === 3;
-  const hasExpectedOutput = expectedOutput !== undefined && expectedOutput !== null && expectedOutput !== '';
-  const outputMatches = hasExpectedOutput
-    ? normalizeOutput(result.stdout) === normalizeOutput(expectedOutput)
-    : accepted;
-
-  let score = 0;
-  if (accepted && outputMatches) score = 100;
-  else if (accepted) score = 70;
-  else if ([6, 7].includes(statusId)) score = 20;
-  else if ([4, 5].includes(statusId)) score = 35;
-  else score = 25;
+  const outputMatches = normalizeOutput(result.stdout) === normalizeOutput(testCase.expectedOutput);
+  const passed = accepted && outputMatches;
 
   return {
-    codeScore: clampScore(score),
-    passedTests: accepted && outputMatches ? 1 : 0,
-    totalTests: 1,
-    compilationStatus: statusDescription,
-    runtimeError: result.stderr || result.compile_output || null,
-    simulated: false,
-    rawData: {
-      simulated: false,
-      status: 'JUDGE0_EXECUTED',
-      judge0Status: result.status || null,
-      stdout: result.stdout || null,
-      stderr: result.stderr || null,
-      compileOutput: result.compile_output || null,
-      time: result.time || null,
-      memory: result.memory || null,
-      outputMatches,
-    },
+    name: testCase.name || `Caso ${index + 1}`,
+    passed,
+    status: statusDescription,
+    statusId,
+    stdout: result.stdout || '',
+    stderr: result.stderr || null,
+    compileOutput: result.compile_output || null,
+    time: result.time || null,
+    memory: result.memory || null,
   };
 };
 
-const judge0FailureResult = (error) => ({
-  codeScore: 30,
+const judge0FailureResult = (error, totalTests = 0) => ({
+  codeScore: null,
   passedTests: 0,
-  totalTests: 1,
+  totalTests,
   compilationStatus: 'JUDGE0_REQUEST_FAILED',
   runtimeError: error.response?.data
     ? JSON.stringify(error.response.data).slice(0, 1000)
@@ -57,6 +41,38 @@ const judge0FailureResult = (error) => ({
     notes: 'Judge0 failed to execute the submission. The CODE question is kept evaluable using semantic/code explanation signals.',
   },
 });
+
+const normalizeTestCases = (codeSubmission) => {
+  if (Array.isArray(codeSubmission.testCases) && codeSubmission.testCases.length > 0) {
+    return codeSubmission.testCases
+      .filter((testCase) => typeof testCase?.expectedOutput === 'string')
+      .slice(0, 5);
+  }
+  if (codeSubmission.expectedOutput !== undefined && codeSubmission.expectedOutput !== null) {
+    return [{
+      name: 'Caso principal',
+      stdin: codeSubmission.stdin || '',
+      expectedOutput: String(codeSubmission.expectedOutput),
+    }];
+  }
+  return [];
+};
+
+const evaluateTestCases = async ({ codeSubmission, testCases }) => {
+  const results = [];
+  for (let index = 0; index < testCases.length; index += 1) {
+    const testCase = testCases[index];
+    const result = await judge0Client.submitCode({
+      language: codeSubmission.language,
+      sourceCode: codeSubmission.sourceCode,
+      stdin: testCase.stdin || '',
+      expectedOutput: testCase.expectedOutput,
+    });
+    results.push(mapJudge0Result({ result, testCase, index }));
+    if ([6, 7].includes(result.status?.id)) break;
+  }
+  return results;
+};
 
 const evaluateCode = async ({ skillType, codeSubmission }) => {
   if (skillType !== 'CODE') return null;
@@ -93,22 +109,60 @@ const evaluateCode = async ({ skillType, codeSubmission }) => {
     };
   }
 
-  let result;
-  try {
-    result = await judge0Client.submitCode({
-      language: codeSubmission.language,
-      sourceCode: codeSubmission.sourceCode,
-      stdin: codeSubmission.stdin,
-      expectedOutput: codeSubmission.expectedOutput,
-    });
-  } catch (error) {
-    return judge0FailureResult(error);
+  const injectionDetected = containsInjectionAttempt(codeSubmission.sourceCode);
+  const testCases = normalizeTestCases(codeSubmission);
+  if (testCases.length === 0) {
+    return {
+      codeScore: null,
+      passedTests: 0,
+      totalTests: 0,
+      compilationStatus: 'NO_TEST_CASES',
+      runtimeError: null,
+      simulated: false,
+      rawData: {
+        simulated: false,
+        status: 'NO_TEST_CASES',
+        notes: 'The coding question did not include verifiable test cases.',
+      },
+    };
   }
 
-  return scoreJudge0Result({
-    result,
-    expectedOutput: codeSubmission.expectedOutput,
-  });
+  let testResults;
+  try {
+    testResults = await evaluateTestCases({ codeSubmission, testCases });
+  } catch (error) {
+    return judge0FailureResult(error, testCases.length);
+  }
+
+  const passedTests = testResults.filter((result) => result.passed).length;
+  const compilationFailure = testResults.find((result) => [6, 7].includes(result.statusId));
+  const runtimeFailure = testResults.find((result) => [5, 8, 9, 10, 11, 12].includes(result.statusId));
+  const evaluated = {
+    codeScore: clampScore(Number(((passedTests / testCases.length) * 100).toFixed(2))),
+    passedTests,
+    totalTests: testCases.length,
+    compilationStatus: compilationFailure?.status || runtimeFailure?.status || 'EXECUTED',
+    runtimeError: compilationFailure?.compileOutput || runtimeFailure?.stderr || null,
+    simulated: false,
+    rawData: {
+      simulated: false,
+      status: 'JUDGE0_TESTS_EXECUTED',
+      passedTests,
+      totalTests: testCases.length,
+      testResults,
+    },
+  };
+  if (!injectionDetected) return evaluated;
+
+  return {
+    ...evaluated,
+    codeScore: Math.min(evaluated.codeScore, 10),
+    rawData: {
+      ...evaluated.rawData,
+      status: 'MANIPULATION_ATTEMPT_DETECTED',
+      notes: 'The submission contains text intended to influence grading rather than solve the exercise.',
+    },
+  };
 };
 
 module.exports = {

@@ -1,6 +1,6 @@
 # api-gateway
 
-`api-gateway` es el punto único de entrada del frontend hacia los microservicios MIC. Enruta requests, valida JWT, aplica control básico por roles, centraliza CORS, headers de seguridad, rate limit, logs, request ids y manejo de errores.
+`api-gateway` es el punto único de entrada del frontend hacia los microservicios de CCInterview. Enruta requests, valida JWT, aplica control básico por roles, centraliza CORS, headers de seguridad, rate limit, logs, request ids y manejo de errores.
 
 ## Qué Hace
 

@@ -2,7 +2,7 @@ import { ClipboardList, FileText, History, LayoutDashboard, UserRound } from 'lu
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/inicio', label: 'Inicio', icon: LayoutDashboard },
   { to: '/cv', label: 'CV', icon: FileText },
   { to: '/profile', label: 'Perfil', icon: UserRound },
   { to: '/interviews/new', label: 'Entrevista', icon: ClipboardList },
@@ -14,8 +14,7 @@ export default function Sidebar() {
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
       <div className="flex h-16 items-center border-b border-slate-100 px-6">
         <div>
-          <p className="text-lg font-bold text-slate-950">MIC Interviews</p>
-          <p className="text-xs text-slate-500">Entrevistas técnicas</p>
+          <p className="text-lg font-bold text-slate-950">CCInterview</p>
         </div>
       </div>
       <nav className="space-y-1 p-4">

@@ -6,6 +6,7 @@ const { comparePassword } = require('../utils/passwordUtils');
 const { sha256 } = require('../utils/tokenUtils');
 const { toPublicUser } = require('../dto/authDto');
 const { AppError } = require('../middlewares/errorMiddleware');
+const accountActionService = require('./accountActionService');
 
 const validateActiveUser = (user) => {
   if (!user) throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
@@ -26,13 +27,19 @@ const register = async ({ email, password, firstName, lastName }) => {
     lastName,
     role: 'CANDIDATE',
   });
-  const tokens = await issueTokens(user);
-  return { user: toPublicUser(user), ...tokens };
+  await accountActionService.sendVerification(user);
+  return {
+    user: toPublicUser(user),
+    message: 'Account created. Check your email to verify your account.',
+  };
 };
 
 const login = async ({ email, password }) => {
   const user = await userRepository.findByEmail(email);
   validateActiveUser(user);
+  if (!user.emailVerifiedAt) {
+    throw new AppError('Email verification is required', 403, 'EMAIL_NOT_VERIFIED');
+  }
 
   const valid = await comparePassword(password, user.passwordHash);
   if (!valid) throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
@@ -70,7 +77,14 @@ const logout = async ({ refreshToken }) => {
 };
 
 const createAdminManagedUser = async ({ email, password, firstName, lastName, role }) => {
-  const user = await userService.createUser({ email, password, firstName, lastName, role });
+  const user = await userService.createUser({
+    email,
+    password,
+    firstName,
+    lastName,
+    role,
+    emailVerifiedAt: new Date(),
+  });
   return toPublicUser(user);
 };
 

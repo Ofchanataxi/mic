@@ -1,4 +1,5 @@
 const { clampScore } = require('../utils/scoreUtils');
+const ffmpegProvider = require('../providers/ffmpegProvider');
 
 const fillerPatterns = [
   /\beh+\b/gi,
@@ -83,7 +84,41 @@ const calculateStructureScore = ({ sentenceCount, wordCount }) => {
   return 75;
 };
 
-const calculateFluencyScore = ({ wordCount, durationMs, speechRate, fillerCount, sentenceCount }) => {
+const calculatePauseScore = ({ pauseCount, averagePauseMs, pauseRatio, pausesPerMinute }) => {
+  if (pauseCount === 0) return 82;
+
+  let durationScore = 100;
+  if (averagePauseMs > 3000) durationScore = 25;
+  else if (averagePauseMs > 2200) durationScore = 50;
+  else if (averagePauseMs > 1500) durationScore = 72;
+  else if (averagePauseMs < 400) durationScore = 85;
+
+  let ratioScore = 100;
+  if (pauseRatio > 0.4) ratioScore = 25;
+  else if (pauseRatio > 0.3) ratioScore = 50;
+  else if (pauseRatio > 0.22) ratioScore = 72;
+  else if (pauseRatio < 0.03) ratioScore = 85;
+
+  let frequencyScore = 100;
+  if (pausesPerMinute > 20) frequencyScore = 35;
+  else if (pausesPerMinute > 14) frequencyScore = 60;
+  else if (pausesPerMinute > 10) frequencyScore = 80;
+
+  return clampScore(Number((
+    durationScore * 0.45
+    + ratioScore * 0.35
+    + frequencyScore * 0.2
+  ).toFixed(2)));
+};
+
+const calculateFluencyScore = ({
+  wordCount,
+  durationMs,
+  speechRate,
+  fillerCount,
+  sentenceCount,
+  pauseScore,
+}) => {
   if (!wordCount) return 0;
 
   const lengthScore = calculateLengthScore({ wordCount, durationMs });
@@ -99,10 +134,11 @@ const calculateFluencyScore = ({ wordCount, durationMs, speechRate, fillerCount,
   const fillerPenalty = calculateFillerPenalty({ fillerCount, wordCount });
 
   const score = (
-    lengthScore * 0.35
-    + speechRateScore * 0.3
-    + densityScore * 0.2
-    + structureScore * 0.15
+    lengthScore * 0.25
+    + speechRateScore * 0.25
+    + densityScore * 0.15
+    + structureScore * 0.1
+    + pauseScore * 0.25
     - fillerPenalty
   );
 
@@ -127,40 +163,74 @@ const classifySpeechRate = (speechRate) => {
   return 'ritmo de habla dentro de rango esperado';
 };
 
-const analyzeAudio = ({ transcription, durationMs }) => {
+const classifyPauses = ({ pauseCount, averagePauseMs, pausesPerMinute, pauseRatio }) => {
+  if (pauseCount === 0) return 'habló de forma continua, sin pausas prolongadas';
+  if (averagePauseMs > 2500 || pauseRatio > 0.35) return 'tuvo muchas pausas prolongadas que afectaron la continuidad';
+  if (pausesPerMinute > 14) return 'tuvo pausas muy frecuentes durante la respuesta';
+  if (averagePauseMs > 1500 || pauseRatio > 0.22) return 'tuvo varias pausas largas';
+  return 'hizo pausas naturales que ayudaron a organizar la respuesta';
+};
+
+const analyzeAudio = async ({ audioPath, transcription, durationMs }) => {
   const wordCount = countWords(transcription);
   const sentenceCount = countSentences(transcription);
   const fillerCount = countFillers(transcription);
   const durationMinutes = durationMs ? durationMs / 60000 : 0;
   const speechRate = durationMinutes > 0 ? Number((wordCount / durationMinutes).toFixed(2)) : null;
+  const detectedSilences = audioPath
+    ? await ffmpegProvider.detectAudioSilences({ audioPath })
+    : [];
+  const internalPauses = detectedSilences.filter((silence) => (
+    silence.startMs > 250
+    && silence.endMs < Math.max(0, durationMs - 250)
+  ));
+  const pauseCount = internalPauses.length;
+  const totalPauseMs = internalPauses.reduce((total, pause) => total + pause.durationMs, 0);
+  const averagePauseMs = pauseCount > 0 ? Number((totalPauseMs / pauseCount).toFixed(2)) : 0;
+  const pauseRatio = durationMs > 0 ? totalPauseMs / durationMs : 0;
+  const pausesPerMinute = durationMinutes > 0 ? pauseCount / durationMinutes : 0;
+  const pauseScore = calculatePauseScore({
+    pauseCount,
+    averagePauseMs,
+    pauseRatio,
+    pausesPerMinute,
+  });
   const fluencyScore = calculateFluencyScore({
     wordCount,
     durationMs,
     speechRate,
     fillerCount,
     sentenceCount,
+    pauseScore,
   });
 
   const confidenceIndicators = {
     responseLength: classifyResponseLength(wordCount),
     speechRate: classifySpeechRate(speechRate),
-    structure: sentenceCount >= 2 ? 'respuesta con separacion de ideas' : 'estructura oral limitada',
-    fillerUsage: fillerCount > 0 ? `muletillas detectadas: ${fillerCount}` : 'sin muletillas evidentes en transcripcion',
-    silenceHandling: wordCount === 0 ? 'segmento tratado como silencio o sin voz confiable' : 'voz transcrita y evaluada',
-    pauseEstimation: 'pausas no estimadas directamente en este MVP',
+    structure: sentenceCount >= 2 ? 'organizó la respuesta en varias ideas' : 'la respuesta tuvo poca estructura',
+    fillerUsage: fillerCount > 0
+      ? `usó ${fillerCount} ${fillerCount === 1 ? 'muletilla' : 'muletillas'}`
+      : 'habló sin muletillas evidentes',
+    silenceHandling: wordCount === 0 ? 'no hubo una respuesta oral clara' : 'la respuesta oral fue clara para el análisis',
+    pauseEstimation: classifyPauses({
+      pauseCount,
+      averagePauseMs,
+      pausesPerMinute,
+      pauseRatio,
+    }),
   };
 
   return {
     durationMs,
     wordCount,
     speechRate,
-    pauseCount: null,
-    averagePauseMs: null,
+    pauseCount,
+    averagePauseMs,
     fluencyScore,
     confidenceIndicators,
     rawData: {
       status: 'STRICT_HEURISTIC_AUDIO_ANALYSIS',
-      notes: 'Audio analysis uses transcription length, answer density, speech-rate range, simple structure and filler-word heuristics.',
+      notes: 'Audio analysis combines speech rate, response development, structure, filler usage and pauses detected directly from the audio signal.',
       componentScores: {
         lengthScore: calculateLengthScore({ wordCount, durationMs }),
         speechRateScore: scoreByRange({
@@ -172,10 +242,16 @@ const analyzeAudio = ({ transcription, durationMs }) => {
         }),
         densityScore: calculateDensityScore({ wordCount, durationMs }),
         structureScore: calculateStructureScore({ sentenceCount, wordCount }),
+        pauseScore,
         fillerPenalty: calculateFillerPenalty({ fillerCount, wordCount }),
       },
       sentenceCount,
       fillerCount,
+      totalPauseMs,
+      pauseRatio: Number(pauseRatio.toFixed(4)),
+      pausesPerMinute: Number(pausesPerMinute.toFixed(2)),
+      detectedSilences,
+      internalPauses,
     },
   };
 };

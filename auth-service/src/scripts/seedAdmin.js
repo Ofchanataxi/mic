@@ -28,6 +28,7 @@ const main = async () => {
     firstName: env.adminFirstName,
     lastName: env.adminLastName,
     role: 'ADMIN',
+    emailVerifiedAt: new Date(),
   });
 
   logger.info('Admin user created', { userId: admin.id, email: admin.email });

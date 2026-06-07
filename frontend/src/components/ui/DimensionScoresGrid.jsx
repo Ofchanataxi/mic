@@ -1,12 +1,9 @@
 import ScoreCard from './ScoreCard.jsx';
 
 const labels = {
-  technical: 'Técnico',
-  softSkills: 'Comunicación',
-  code: 'Código',
-  audio: 'Audio',
-  video: 'Video',
-  semantic: 'Claridad',
+  technical: 'Habilidades técnicas',
+  softSkills: 'Habilidades blandas',
+  code: 'Ejercicios de código',
 };
 
 export default function DimensionScoresGrid({ scores = {} }) {

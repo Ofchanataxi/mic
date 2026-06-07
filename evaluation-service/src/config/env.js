@@ -29,8 +29,15 @@ const env = {
   openaiTimeoutMs: toNumber(process.env.OPENAI_TIMEOUT_MS, 90000),
   openaiMaxRetries: toNumber(process.env.OPENAI_MAX_RETRIES, 1),
   judge0ApiKey: process.env.JUDGE0_API_KEY || '',
+  judge0ApiKeys: String(process.env.JUDGE0_API_KEYS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
   judge0ApiUrl: process.env.JUDGE0_API_URL || 'https://judge0-ce.p.rapidapi.com',
   judge0ApiHost: process.env.JUDGE0_API_HOST || 'judge0-ce.p.rapidapi.com',
+  judge0ProvidersJson: process.env.JUDGE0_PROVIDERS_JSON || '',
+  judge0ProviderFailureThreshold: toNumber(process.env.JUDGE0_PROVIDER_FAILURE_THRESHOLD, 1),
+  judge0ProviderCooldownMs: toNumber(process.env.JUDGE0_PROVIDER_COOLDOWN_MS, 60000),
   tempProcessingDir: process.env.TEMP_PROCESSING_DIR || './tmp/evaluation',
   allowCompletedReprocess: toBoolean(process.env.ALLOW_COMPLETED_REPROCESS, false),
   internalServiceToken: process.env.INTERNAL_SERVICE_TOKEN || '',

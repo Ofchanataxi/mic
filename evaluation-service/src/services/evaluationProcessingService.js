@@ -136,6 +136,109 @@ const resolveVideoAccessUrl = async (interviewData) => {
   return toContainerReachableMediaUrl(interviewData.videoAccessUrl);
 };
 
+const processCodeQuestion = async ({ questionEvaluation, interviewId, question }) => {
+  if (!question.questionId) throw new Error('Question is missing questionId');
+  if (!question.questionText) throw new Error(`Question ${question.questionId} is missing questionText`);
+  if (!question.codeSubmission?.sourceCode) {
+    throw new Error(`Question ${question.questionId} has no code submission`);
+  }
+
+  const code = await codeEvaluationService.evaluateCode({
+    skillType: 'CODE',
+    codeSubmission: question.codeSubmission,
+  });
+
+  let semantic = null;
+  try {
+    semantic = await semanticEvaluationService.evaluateAnswer({
+      questionText: question.questionText,
+      skillType: 'CODE',
+      answerText: question.answerText,
+      transcription: null,
+      codeSubmission: question.codeSubmission,
+    });
+  } catch (error) {
+    logger.warn('Semantic analysis failed for CODE question; preserving Judge0 result', {
+      interviewId,
+      questionId: question.questionId,
+      error: error.message,
+    });
+  }
+
+  const semanticScore = semantic?.overallSemanticScore ?? null;
+  const codeScore = code?.codeScore ?? null;
+  const finalScore = scoreOrchestrator.calculateQuestionScore({
+    skillType: 'CODE',
+    semanticScore,
+    audioScore: null,
+    videoScore: null,
+    codeScore,
+  });
+
+  if (finalScore === null) {
+    throw new Error(`Question ${question.questionId} could not be evaluated by Judge0 or semantic analysis`);
+  }
+
+  const allTestsPassed = code?.totalTests > 0 && code.passedTests === code.totalTests;
+  const strengths = semantic?.strengths || (allTestsPassed
+    ? ['La solución superó todos los casos de prueba.']
+    : []);
+  const weaknesses = semantic?.weaknesses || (code?.totalTests > 0
+    ? [`La solución superó ${code.passedTests} de ${code.totalTests} casos de prueba.`]
+    : ['No fue posible verificar la solución con casos de prueba.']);
+  const recommendations = semantic?.recommendations || (allTestsPassed
+    ? ['Mantén esta claridad y valida también casos límite al desarrollar la solución.']
+    : ['Revisa el formato de entrada y salida y prueba la solución con casos límite.']);
+
+  await Promise.all([
+    semantic ? questionEvaluationRepository.createSemanticResult(questionEvaluation.id, {
+      coherenceScore: semantic.coherenceScore,
+      technicalAccuracyScore: semantic.technicalAccuracyScore,
+      clarityScore: semantic.clarityScore,
+      depthScore: semantic.depthScore,
+      relevanceScore: semantic.relevanceScore,
+      overallSemanticScore: semantic.overallSemanticScore,
+      justification: semantic.justification,
+      rawData: semantic,
+    }) : Promise.resolve(),
+    code ? questionEvaluationRepository.createCodeResult(questionEvaluation.id, {
+      passedTests: code.passedTests,
+      totalTests: code.totalTests,
+      executionScore: code.codeScore,
+      compilationStatus: code.compilationStatus,
+      runtimeError: code.runtimeError,
+      simulated: code.simulated,
+      rawData: code.rawData,
+    }) : Promise.resolve(),
+  ]);
+
+  const completed = await questionEvaluationRepository.markCompleted(questionEvaluation.id, {
+    answerText: question.answerText || null,
+    transcription: null,
+    semanticScore,
+    audioScore: null,
+    videoScore: null,
+    codeScore,
+    finalScore,
+    strengths,
+    weaknesses,
+    recommendations,
+    rawSemanticEvaluation: semantic,
+    rawAudioAnalysis: null,
+    rawVideoAnalysis: null,
+    rawCodeEvaluation: code,
+  });
+
+  logger.info('CODE question evaluation completed', {
+    interviewId,
+    questionId: question.questionId,
+    passedTests: code?.passedTests,
+    totalTests: code?.totalTests,
+    finalScore,
+  });
+  return completed;
+};
+
 const processQuestion = async ({ interviewEvaluation, interviewId, question, paths }) => {
   const questionEvaluation = await questionEvaluationRepository.upsertPending({
     interviewEvaluationId: interviewEvaluation.id,
@@ -144,8 +247,16 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
   });
 
   try {
-    validateQuestion(question);
     await questionEvaluationRepository.markProcessing(questionEvaluation.id);
+    if (question.skillType === 'CODE') {
+      return await processCodeQuestion({
+        questionEvaluation,
+        interviewId,
+        question,
+      });
+    }
+
+    validateQuestion(question);
 
     const segmentName = `question-${question.order || safeName(question.questionId)}.mp3`;
     const audioPath = path.join(paths.segments, segmentName);
@@ -181,7 +292,11 @@ const processQuestion = async ({ interviewEvaluation, interviewId, question, pat
       transcription,
       codeSubmission: question.codeSubmission,
     });
-    const audio = audioAnalysisService.analyzeAudio({ transcription, durationMs });
+    const audio = await audioAnalysisService.analyzeAudio({
+      audioPath,
+      transcription,
+      durationMs,
+    });
     const video = await videoAnalysisService.analyzeVideo({
       videoSegmentPath,
       startTimeMs: question.startTimeMs,

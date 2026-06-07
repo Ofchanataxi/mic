@@ -1,6 +1,6 @@
 # feedback-service
 
-`feedback-service` genera, almacena y expone el reporte final de una entrevista MIC. Consume resultados ya calculados por `evaluation-service`, los transforma en feedback claro para frontend y persiste el reporte en el schema PostgreSQL `feedback`.
+`feedback-service` genera, almacena y expone el reporte final de una entrevista de CCInterview. Consume resultados ya calculados por `evaluation-service`, los transforma en feedback claro para frontend y persiste el reporte en el schema PostgreSQL `feedback`.
 
 ## Qué hace
 

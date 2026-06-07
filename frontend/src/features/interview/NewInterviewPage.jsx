@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList } from 'lucide-react';
+import { Clock3, ClipboardList } from 'lucide-react';
 import { candidateApi } from '../../api/candidateApi.js';
 import { interviewApi } from '../../api/interviewApi.js';
 import Alert from '../../components/ui/Alert.jsx';
@@ -18,10 +18,19 @@ export default function NewInterviewPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR', questionCount: 8 });
-  const [editDetails, setEditDetails] = useState(false);
+  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR' });
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const profileLevel = validLevels.includes(profile?.estimatedSeniority)
+    ? profile.estimatedSeniority
+    : 'JUNIOR';
+  const hasProfileChanges = Boolean(profile) && (
+    form.targetRole.trim() !== (profile.targetRole || '').trim()
+    || form.level !== profileLevel
+  );
 
   useEffect(() => {
     candidateApi.getMyProfile()
@@ -38,22 +47,41 @@ export default function NewInterviewPage() {
   }, []);
 
   const updateField = (event) => {
-    const value = event.target.name === 'questionCount' ? Number(event.target.value) : event.target.value;
-    setForm((current) => ({ ...current, [event.target.name]: value }));
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    if (event.target.name === 'targetRole' || event.target.name === 'level') {
+      setSuccess('');
+    }
   };
 
-  const toggleDetailsEditing = () => {
-    setEditDetails((current) => {
-      const next = !current;
-      if (!next && profile) {
-        setForm((currentForm) => ({
-          ...currentForm,
-          targetRole: profile.targetRole || '',
-          level: validLevels.includes(profile.estimatedSeniority) ? profile.estimatedSeniority : 'JUNIOR',
-        }));
-      }
-      return next;
-    });
+  const saveProfileChanges = async () => {
+    if (!form.targetRole.trim()) {
+      setError('Ingresa un puesto objetivo.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const updatedProfile = await candidateApi.updateMyProfile({
+        targetRole: form.targetRole.trim(),
+        level: form.level,
+      });
+      setProfile(updatedProfile);
+      setForm((current) => ({
+        ...current,
+        targetRole: updatedProfile.targetRole || current.targetRole,
+        level: validLevels.includes(updatedProfile.estimatedSeniority)
+          ? updatedProfile.estimatedSeniority
+          : current.level,
+      }));
+      setSuccess('Puesto objetivo y nivel guardados correctamente.');
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -62,15 +90,17 @@ export default function NewInterviewPage() {
       setError('Primero debes generar un perfil desde tu CV.');
       return;
     }
+
     setLoading(true);
     setError('');
+
     try {
       const result = await interviewApi.createInterview({
         userId: user.userId || user.id,
         candidateProfileId: profile.id,
-        targetRole: form.targetRole || undefined,
+        targetRole: form.targetRole,
         level: form.level,
-        questionCount: form.questionCount,
+        questionCount: 8,
       });
       navigate(`/interviews/${result.interviewId}/session`);
     } catch (apiError) {
@@ -83,31 +113,33 @@ export default function NewInterviewPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Entrevista"
         title="Nueva entrevista"
         description="Configura la entrevista. Al crearla irás a una sesión con cámara, grabación continua y preguntas adaptadas a tu perfil."
       />
 
       <Card className="max-w-2xl">
-        <CardHeader title="Configuración" description={profile ? `Perfil: ${profile.fullName || 'listo para entrevista'}` : 'Perfil no encontrado'} />
+        <CardHeader
+          title="Configuración"
+          description={profile ? `Perfil: ${profile.fullName || 'listo para entrevista'}` : 'Perfil no encontrado'}
+        />
         <CardBody>
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error ? <Alert tone="error">{error}</Alert> : null}
+            {success ? <Alert tone="success">{success}</Alert> : null}
             {!profile ? <Alert tone="warning">Sube tu CV y genera un perfil antes de crear entrevistas.</Alert> : null}
             <Alert tone="info">
-              Usaremos el rol objetivo y el nivel inferidos desde tu CV. Puedes editarlos antes de crear la entrevista.
+              El puesto objetivo y el nivel fueron identificados desde tu CV. Puedes modificarlos para esta entrevista.
             </Alert>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 id="targetRole"
                 name="targetRole"
-                label="Rol objetivo"
+                label="Puesto objetivo"
                 value={form.targetRole}
                 onChange={updateField}
                 placeholder="Backend Developer"
-                disabled={!editDetails}
-                className={!editDetails ? 'bg-slate-50 text-slate-500' : ''}
+                required
               />
               <Select
                 id="level"
@@ -115,8 +147,6 @@ export default function NewInterviewPage() {
                 label="Nivel"
                 value={form.level}
                 onChange={updateField}
-                disabled={!editDetails}
-                className={!editDetails ? 'bg-slate-50 text-slate-500' : ''}
               >
                 <option value="JUNIOR">Junior</option>
                 <option value="MID">Mid</option>
@@ -124,15 +154,35 @@ export default function NewInterviewPage() {
               </Select>
             </div>
 
-            <button
+            <Button
               type="button"
-              className="text-sm font-semibold text-brand-700 hover:text-brand-600"
-              onClick={toggleDetailsEditing}
+              variant="secondary"
+              disabled={!hasProfileChanges || saving}
+              onClick={saveProfileChanges}
             >
-              {editDetails ? 'Usar datos inferidos' : 'Editar rol y nivel'}
-            </button>
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
 
-            <Input id="questionCount" name="questionCount" label="Cantidad de preguntas" type="number" min="5" max="12" value={form.questionCount} onChange={updateField} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <ClipboardList className="h-4 w-4 text-brand-600" />
+                  8 preguntas
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  3 técnicas, 3 blandas y 2 ejercicios de código.
+                </p>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                  <Clock3 className="h-4 w-4 text-brand-600" />
+                  Duración máxima
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Dispondrás de hasta 30 minutos para completar la entrevista.
+                </p>
+              </div>
+            </div>
             <Button type="submit" disabled={loading || !profile}>
               <ClipboardList className="h-4 w-4" />
               {loading ? 'Creando...' : 'Crear entrevista'}

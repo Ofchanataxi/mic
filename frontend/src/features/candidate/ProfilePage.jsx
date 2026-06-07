@@ -1,35 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { ArrowRight, FileText } from 'lucide-react';
 import { candidateApi } from '../../api/candidateApi.js';
 import Alert from '../../components/ui/Alert.jsx';
-import Button from '../../components/ui/Button.jsx';
 import Card, { CardBody, CardHeader } from '../../components/ui/Card.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import Input from '../../components/ui/Input.jsx';
 import LoadingState from '../../components/ui/LoadingState.jsx';
 import PageHeader from '../../components/ui/PageHeader.jsx';
 import ProfileSummaryCard from '../../components/ui/ProfileSummaryCard.jsx';
-import Select from '../../components/ui/Select.jsx';
 import TopicBadge from '../../components/ui/TopicBadge.jsx';
 import { getApiErrorMessage } from '../../utils/formatters.js';
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [topics, setTopics] = useState([]);
-  const [form, setForm] = useState({ targetRole: '', level: 'JUNIOR' });
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const hydrateForm = (profileData) => {
-    setForm({
-      targetRole: profileData?.targetRole || '',
-      level: profileData?.estimatedSeniority || 'JUNIOR',
-    });
-  };
+  const technicalTopics = topics.filter((topic) => topic.skillType === 'TECHNICAL');
+  const softTopics = topics.filter((topic) => topic.skillType === 'SOFT');
+  const detectedTechnologies = Array.from(new Set(
+    (profile?.rawStructuredProfile?.technologies || [])
+      .map((technology) => String(technology || '').trim())
+      .filter(Boolean),
+  )).sort((left, right) => left.localeCompare(right));
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -40,7 +33,6 @@ export default function ProfilePage() {
         candidateApi.getMyTopics(),
       ]);
       setProfile(profileData);
-      hydrateForm(profileData);
       setTopics(topicsData.topics || profileData.topics || []);
     } catch (apiError) {
       if (apiError.response?.status === 404) {
@@ -58,48 +50,15 @@ export default function ProfilePage() {
     loadProfile();
   }, [loadProfile]);
 
-  const updateField = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  };
-
-  const cancelEdit = () => {
-    hydrateForm(profile);
-    setEditing(false);
-    setSuccess('');
-  };
-
-  const saveProfile = async (event) => {
-    event.preventDefault();
-    setSaving(true);
-    setError('');
-    setSuccess('');
-    try {
-      const updated = await candidateApi.updateMyProfile({
-        targetRole: form.targetRole,
-        level: form.level,
-      });
-      setProfile(updated);
-      hydrateForm(updated);
-      setEditing(false);
-      setSuccess('Perfil actualizado correctamente.');
-    } catch (apiError) {
-      setError(getApiErrorMessage(apiError));
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <>
       <PageHeader
-        eyebrow="Perfil"
         title="Perfil del candidato"
         description="Resumen generado desde tu CV para personalizar tus entrevistas."
       />
 
       {loading ? <LoadingState label="Cargando perfil" /> : null}
       {error ? <div className="mb-5"><Alert tone="error">{error}</Alert></div> : null}
-      {success ? <div className="mb-5"><Alert tone="success">{success}</Alert></div> : null}
 
       {!loading && !error && !profile ? (
         <EmptyState
@@ -118,52 +77,77 @@ export default function ProfilePage() {
             <Card>
               <CardHeader
                 title="Datos de entrevista"
-                description="Puedes ajustar estos datos antes de crear nuevas entrevistas."
-                action={!editing ? <Button variant="secondary" onClick={() => setEditing(true)}>Editar</Button> : null}
+                description="Datos identificados a partir de tu Curriculum Vitae."
               />
-              <CardBody>
-                <form className="space-y-4" onSubmit={saveProfile}>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Input
-                      id="profile-target-role"
-                      name="targetRole"
-                      label="Rol objetivo"
-                      value={form.targetRole}
-                      onChange={updateField}
-                      disabled={!editing}
-                      className={!editing ? 'bg-slate-50 text-slate-500' : ''}
-                    />
-                    <Select
-                      id="profile-level"
-                      name="level"
-                      label="Nivel"
-                      value={form.level}
-                      onChange={updateField}
-                      disabled={!editing}
-                      className={!editing ? 'bg-slate-50 text-slate-500' : ''}
-                    >
-                      <option value="JUNIOR">Junior</option>
-                      <option value="MID">Mid</option>
-                      <option value="SENIOR">Senior</option>
-                    </Select>
+              <CardBody className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Puesto objetivo</p>
+                    <p className="mt-1 text-sm text-slate-900">{profile.targetRole || 'Pendiente'}</p>
                   </div>
-                  {editing ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar cambios'}</Button>
-                      <Button type="button" variant="secondary" onClick={cancelEdit}>Cancelar</Button>
-                    </div>
-                  ) : null}
-                </form>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Nivel</p>
+                    <p className="mt-1 text-sm text-slate-900">{profile.estimatedSeniority || 'Pendiente'}</p>
+                  </div>
+                </div>
+                <div className="rounded-md bg-brand-50 p-4 text-sm leading-6 text-slate-700">
+                  Podrás editar el puesto objetivo y el nivel antes de iniciar cada entrevista.
+                </div>
+                <Link
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-600"
+                  to="/interviews/new"
+                >
+                  Configurar una entrevista
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </CardBody>
             </Card>
           </div>
 
-          <Card>
-            <CardHeader title="Áreas de evaluación" description={`${topics.length} áreas detectadas`} />
-            <CardBody className="space-y-4">
-              {topics.map((topic) => <TopicBadge key={topic.id || topic.name} topic={topic} />)}
-            </CardBody>
-          </Card>
+          <div className="space-y-5">
+            <Card>
+              <CardHeader
+                title="Tecnologías identificadas"
+                description={`${detectedTechnologies.length} tecnologías encontradas en tu Curriculum Vitae`}
+              />
+              <CardBody>
+                {detectedTechnologies.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {detectedTechnologies.map((technology) => (
+                      <span
+                        key={technology}
+                        className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-800"
+                      >
+                        {technology}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-600">No se identificaron tecnologías específicas.</p>
+                )}
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Áreas técnicas para entrevistas"
+                description={`${technicalTopics.length} áreas organizadas para evaluar tus conocimientos`}
+              />
+              <CardBody className="space-y-4">
+                {technicalTopics.map((topic) => <TopicBadge key={topic.id || topic.name} topic={topic} />)}
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Habilidades blandas"
+                description={`${softTopics.length} habilidades consideradas`}
+              />
+              <CardBody className="space-y-4">
+                {softTopics.map((topic) => <TopicBadge key={topic.id || topic.name} topic={topic} />)}
+              </CardBody>
+            </Card>
+          </div>
         </div>
       ) : null}
     </>

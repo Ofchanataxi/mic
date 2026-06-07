@@ -81,6 +81,7 @@ model InterviewQuestion {
   questionType         QuestionType
   prompt               String
   language             String?
+  codingTestCases      Json?
   orderIndex           Int
   expectedLevel        ExpectedLevel?
   generatedByModel     String?

@@ -9,12 +9,12 @@ export default function AuthShell({ title, description, children }) {
             <BrainCircuit className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-bold">MIC Interviews</p>
-            <p className="text-sm text-indigo-100">Plataforma de entrevistas técnicas</p>
+            <p className="font-bold">CCInterview</p>
+            <p className="text-sm text-indigo-100">Entrevistas para impulsar tu desarrollo profesional</p>
           </div>
         </div>
         <div className="max-w-lg">
-          <h1 className="text-3xl font-bold leading-tight">Entrevistas técnicas con evidencia multimodal.</h1>
+          <h1 className="text-3xl font-bold leading-tight">Prepárate con entrevistas adaptadas a tu perfil.</h1>
           <p className="mt-4 text-sm leading-6 text-indigo-100">
             Gestiona tu perfil, tus entrevistas y tus reportes en un solo lugar.
           </p>

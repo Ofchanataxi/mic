@@ -14,7 +14,6 @@ export default function Topbar() {
         </button>
         <div>
           <p className="text-sm font-semibold text-slate-950">{displayName}</p>
-          <p className="text-xs text-slate-500">{user?.role || 'CANDIDATE'}</p>
         </div>
       </div>
       <Button variant="secondary" onClick={logout}>

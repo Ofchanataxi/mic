@@ -3,7 +3,14 @@ const { hashPassword } = require('../utils/passwordUtils');
 const { toPublicUser } = require('../dto/authDto');
 const { AppError } = require('../middlewares/errorMiddleware');
 
-const createUser = async ({ email, password, firstName, lastName, role = 'CANDIDATE' }) => {
+const createUser = async ({
+  email,
+  password,
+  firstName,
+  lastName,
+  role = 'CANDIDATE',
+  emailVerifiedAt = null,
+}) => {
   const existing = await userRepository.findByEmail(email);
   if (existing) throw new AppError('Email already exists', 409, 'EMAIL_ALREADY_EXISTS');
 
@@ -14,6 +21,7 @@ const createUser = async ({ email, password, firstName, lastName, role = 'CANDID
     firstName: firstName || null,
     lastName: lastName || null,
     role,
+    emailVerifiedAt,
   });
 
   return user;

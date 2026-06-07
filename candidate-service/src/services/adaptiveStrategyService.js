@@ -13,10 +13,9 @@ class AdaptiveStrategyService {
 
     const technical = profile.subtopics.filter((subtopic) => subtopic.skillType === SkillType.TECHNICAL);
     const soft = profile.subtopics.filter((subtopic) => subtopic.skillType === SkillType.SOFT);
-    const softTargetCount = Math.min(
-      soft.length,
-      Math.floor(questionCount * env.adaptiveSoftSkillsRatio)
-    );
+    const softTargetCount = questionCount === 8
+      ? Math.min(soft.length, 3)
+      : Math.min(soft.length, Math.floor(questionCount * env.adaptiveSoftSkillsRatio));
     const technicalTargetCount = questionCount - softTargetCount;
 
     const plan = [];
