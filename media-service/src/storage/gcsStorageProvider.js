@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { Readable } = require("stream");
+const { Storage } = require("@google-cloud/storage");
 
 function trimTrailingSlash(value) {
   return value.replace(/\/+$/, "");
@@ -10,10 +11,22 @@ class GcsStorageProvider {
   constructor(env) {
     this.projectId = env.gcsProjectId;
     this.bucketName = env.gcsBucketName;
-    this.baseUrl = trimTrailingSlash(env.gcsEmulatorHost || "http://localhost:4443");
+    this.baseUrl = env.gcsEmulatorHost ? trimTrailingSlash(env.gcsEmulatorHost) : "";
+    this.storage = this.baseUrl ? null : new Storage({ projectId: this.projectId });
   }
 
   async ensureBucketExists() {
+    if (!this.baseUrl) {
+      const bucket = this.storage.bucket(this.bucketName);
+      const [exists] = await bucket.exists();
+
+      if (!exists) {
+        await this.storage.createBucket(this.bucketName);
+      }
+
+      return;
+    }
+
     const bucketUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}`;
     const response = await fetch(bucketUrl);
 
@@ -51,6 +64,17 @@ class GcsStorageProvider {
   }
 
   async uploadFile({ sourcePath, destination, contentType }) {
+    if (!this.baseUrl) {
+      await this.storage.bucket(this.bucketName).upload(sourcePath, {
+        destination,
+        metadata: {
+          contentType
+        }
+      });
+
+      return;
+    }
+
     const buffer = await fs.promises.readFile(sourcePath);
     const uploadUrl = `${this.baseUrl}/upload/storage/v1/b/${encodeURIComponent(this.bucketName)}/o?uploadType=media&name=${encodeURIComponent(destination)}`;
 
@@ -68,6 +92,14 @@ class GcsStorageProvider {
   }
 
   async deleteFile(storageKey) {
+    if (!this.baseUrl) {
+      await this.storage.bucket(this.bucketName).file(storageKey).delete({
+        ignoreNotFound: true
+      });
+
+      return;
+    }
+
     const deleteUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}`;
     const response = await fetch(deleteUrl, {
       method: "DELETE"
@@ -85,6 +117,11 @@ class GcsStorageProvider {
   }
 
   async fileExists(storageKey) {
+    if (!this.baseUrl) {
+      const [exists] = await this.storage.bucket(this.bucketName).file(storageKey).exists();
+      return exists;
+    }
+
     const metadataUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}`;
     const response = await fetch(metadataUrl);
 
@@ -94,6 +131,19 @@ class GcsStorageProvider {
   }
 
   async streamFile(storageKey, writableStream) {
+    if (!this.baseUrl) {
+      await new Promise((resolve, reject) => {
+        const readStream = this.storage.bucket(this.bucketName).file(storageKey).createReadStream();
+
+        readStream.on("error", reject);
+        writableStream.on("error", reject);
+        writableStream.on("finish", resolve);
+        readStream.pipe(writableStream);
+      });
+
+      return;
+    }
+
     const fileUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}?alt=media`;
     const response = await fetch(fileUrl);
 
@@ -112,6 +162,11 @@ class GcsStorageProvider {
   }
 
   async downloadFileBuffer(storageKey) {
+    if (!this.baseUrl) {
+      const [buffer] = await this.storage.bucket(this.bucketName).file(storageKey).download();
+      return buffer;
+    }
+
     const fileUrl = `${this.baseUrl}/storage/v1/b/${encodeURIComponent(this.bucketName)}/o/${encodeURIComponent(storageKey)}?alt=media`;
     const response = await fetch(fileUrl);
 
